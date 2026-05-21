@@ -21,6 +21,7 @@ const formatResendTime = (seconds) => {
     const remainder = (seconds % 60).toString().padStart(2, "0");
     return `${minutes}:${remainder}`;
 };
+const isBrowserNetworkBlock = (error) => !error?.response && (error?.code === "ERR_NETWORK" || error?.message === "Network Error");
 const LoginPage = () => {
     const [loginError, setLoginError] = useState("");
     const location = useLocation();
@@ -86,6 +87,10 @@ const LoginPage = () => {
             setAuth(payload.user, payload.accessToken ?? token);
             navigate("/");
         } catch (error) {
+            if (isBrowserNetworkBlock(error)) {
+                setLoginError("Browser blocked the local backend request. Disable extensions/shields or use a tunnel URL for the API.");
+                return;
+            }
             const status = error?.response?.status;
             const detail = error?.response?.data?.detail ?? error?.response?.data?.message;
             const needsVerification = status === 403 && String(detail ?? "").toLowerCase().includes("verified");

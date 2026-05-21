@@ -5,7 +5,7 @@ export default defineConfig(({mode}) => {
     const frontendEnv = loadEnv(mode, ".", "");
     const rootEnv = loadEnv(mode, "../", "");
     const firstValue = (...values: Array<string | undefined>) => values.find((value) => value && value.trim().length > 0);
-    const defaultApiGatewayUrl = "http://localhost:8080";
+    const defaultApiGatewayUrl = "http://127.0.0.1:8080";
     const defaultFrontendPublicUrl = "https://manishrnl-microservice-template.netlify.app";
     const normalizeUrl = (value: string | undefined) => value?.trim().replace(/\/+$/, "");
     const resolveApiGatewayUrl = () => {

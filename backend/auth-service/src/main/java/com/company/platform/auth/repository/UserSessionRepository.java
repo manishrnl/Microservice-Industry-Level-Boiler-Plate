@@ -19,8 +19,22 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
     Optional<UserSession> findBySessionIdAndExpiredFalse(String sessionId);
 
     @Modifying
-    @Query("delete from UserSession s where s.user = :user and s.ipAddress = :ipAddress")
-    int deleteByUserAndIpAddress(@Param("user") User user, @Param("ipAddress") String ipAddress);
+    @Query("delete from UserSession s where s.user = :user and s.expired = false and s.deviceId = :deviceId")
+    int deleteActiveByUserAndDeviceId(@Param("user") User user, @Param("deviceId") String deviceId);
+
+    @Modifying
+    @Query("""
+            delete from UserSession s
+            where s.user = :user
+              and s.expired = false
+              and s.userAgent = :userAgent
+              and (s.deviceId is null or s.deviceId = '')
+            """)
+    int deleteLegacyBrowserSessionsByUserAndUserAgent(@Param("user") User user, @Param("userAgent") String userAgent);
+
+    @Modifying
+    @Query("delete from UserSession s where s.user = :user and s.expired = false and s.ipAddress = :ipAddress")
+    int deleteActiveByUserAndIpAddress(@Param("user") User user, @Param("ipAddress") String ipAddress);
 
     @Modifying
     @Query("delete from UserSession s where s.user = :user")

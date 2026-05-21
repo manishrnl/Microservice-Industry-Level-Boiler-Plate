@@ -24,15 +24,16 @@ public class AuthSessionService {
     }
 
     public void create(User user, String sessionId, String deviceId, String ipAddress, String userAgent) {
-        if (ipAddress != null && !ipAddress.isBlank()) {
-            sessions.deleteByUserAndIpAddress(user, ipAddress);
-        }
+        String normalizedDeviceId = blankToNull(deviceId);
+        String normalizedIpAddress = blankToNull(ipAddress);
+        String normalizedUserAgent = blankToNull(userAgent);
+        deleteDuplicateDeviceSessions(user, normalizedDeviceId, normalizedIpAddress, normalizedUserAgent);
         sessions.save(UserSession.builder()
                 .user(user)
                 .sessionId(sessionId)
-                .deviceId(deviceId)
-                .ipAddress(ipAddress)
-                .userAgent(userAgent)
+                .deviceId(normalizedDeviceId)
+                .ipAddress(normalizedIpAddress)
+                .userAgent(normalizedUserAgent)
                 .lastActive(LocalDateTime.now())
                 .expired(false)
                 .build());
@@ -74,5 +75,26 @@ public class AuthSessionService {
         if (activeSessions.size() > MAX_SESSIONS_PER_USER) {
             sessions.deleteAll(activeSessions.subList(MAX_SESSIONS_PER_USER, activeSessions.size()));
         }
+    }
+
+    private void deleteDuplicateDeviceSessions(User user, String deviceId, String ipAddress, String userAgent) {
+        if (deviceId != null) {
+            sessions.deleteActiveByUserAndDeviceId(user, deviceId);
+            if (userAgent != null) {
+                sessions.deleteLegacyBrowserSessionsByUserAndUserAgent(user, userAgent);
+            }
+            return;
+        }
+        if (userAgent != null) {
+            sessions.deleteLegacyBrowserSessionsByUserAndUserAgent(user, userAgent);
+            return;
+        }
+        if (ipAddress != null) {
+            sessions.deleteActiveByUserAndIpAddress(user, ipAddress);
+        }
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

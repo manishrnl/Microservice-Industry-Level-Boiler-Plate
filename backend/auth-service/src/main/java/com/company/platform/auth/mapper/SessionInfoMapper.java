@@ -20,7 +20,7 @@ public class SessionInfoMapper {
     public SessionInfoDto toDto(UserSession session, String currentSessionId) {
         SessionInfoDto dto = modelMapper.map(new SessionView(session.getId(), session.getSessionId(), session.isExpired()), SessionInfoDto.class);
         DeviceInfo deviceInfo = parseDeviceInfo(session.getUserAgent());
-        dto.setDeviceId(session.getDeviceId() == null ? "Browser session" : session.getDeviceId());
+        dto.setDeviceId(displayDeviceId(session.getDeviceId()));
         dto.setIpAddress(session.getIpAddress() == null ? "" : session.getIpAddress());
         dto.setUserAgent(session.getUserAgent() == null ? "" : session.getUserAgent());
         dto.setBrowser(deviceInfo.browser());
@@ -55,6 +55,13 @@ public class SessionInfoMapper {
                 : userAgent.contains("iPad") || userAgent.contains("Tablet") ? "Tablet"
                 : "Desktop";
         return new DeviceInfo(browser, os, deviceType);
+    }
+
+    private String displayDeviceId(String deviceId) {
+        if (deviceId == null || deviceId.isBlank() || deviceId.startsWith("browser-")) {
+            return "Browser session";
+        }
+        return deviceId;
     }
 
     private record DeviceInfo(String browser, String operatingSystem, String deviceType) {

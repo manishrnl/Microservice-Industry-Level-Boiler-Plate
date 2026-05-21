@@ -6,6 +6,7 @@ import {apiClient} from "../../api/axiosInstance";
 import {endpoints} from "../../api/endpoints";
 import {Loader} from "../../components/common/Loader";
 import {useAuthStore} from "../../store/authStore";
+import {getDeviceId} from "../../utils/deviceId";
 import {unwrapApiData} from "../../utils/responseUtils";
 import {AuthShell} from "./AuthShell";
 import {OAuthButtons} from "./OAuthButtons";
@@ -75,7 +76,10 @@ const LoginPage = () => {
                 setLoginNotice("Email verified. Sign in with your password.");
                 return;
             }
-            const response = await apiClient.post(endpoints.auth.login, values);
+            const response = await apiClient.post(endpoints.auth.login, {
+                ...values,
+                deviceId: getDeviceId()
+            });
             const token = unwrapApiData(response.data).accessToken;
             const me = await apiClient.get(endpoints.auth.me, {headers: {Authorization: `Bearer ${token}`}});
             const payload = unwrapApiData(me.data);

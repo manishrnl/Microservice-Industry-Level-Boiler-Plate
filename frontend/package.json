@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "node scripts/vite-lan-host.mjs",
     "build": "vite build",
-    "preview": "vite preview --host"
+    "preview": "node scripts/vite-lan-host.mjs preview"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.76.1",

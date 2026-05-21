@@ -88,7 +88,7 @@ const LoginPage = () => {
             navigate("/");
         } catch (error) {
             if (isBrowserNetworkBlock(error)) {
-                setLoginError("Browser blocked the local backend request. Start an HTTPS tunnel to port 8080 and reopen this site with ?api=<tunnel-url>.");
+                setLoginError("Could not read the backend response. Use an HTTPS tunnel URL, then check api-gateway/auth-service logs and database health.");
                 return;
             }
             const status = error?.response?.status;

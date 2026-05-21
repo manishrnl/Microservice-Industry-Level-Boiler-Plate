@@ -1,0 +1,42 @@
+# Config Server only — build from repository root (Render Root Directory must be blank).
+# On Render: Dockerfile Path = Dockerfile-config-server
+
+# =========================
+# Stage 1: Build
+# =========================
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+
+WORKDIR /workspace
+
+COPY pom.xml .
+COPY backend ./backend
+
+RUN --mount=type=cache,target=/root/.m2 set -eux; \
+    mvn clean package -DskipTests -pl backend/config-server -am; \
+    cp backend/config-server/target/*.jar /tmp/app.jar; \
+    cp -r backend/config-server-repo /tmp/config-server-repo
+
+# =========================
+# Stage 2: Runtime
+# =========================
+FROM eclipse-temurin:21-jre-jammy
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /tmp/app.jar app.jar
+COPY --from=build /tmp/config-server-repo /app/config-server-repo
+
+# Defaults for Render; override in the Render dashboard if using Git backend.
+ENV CONFIG_SERVER_BACKEND=native \
+    CONFIG_NATIVE_SEARCH_LOCATIONS=file:/app/config-server-repo
+
+EXPOSE 8888
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+    CMD curl -fsS http://localhost:${PORT:-8888}/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

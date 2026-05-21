@@ -1,0 +1,33 @@
+server:
+  port: 8761
+spring:
+  application:
+    name: discovery-server
+  config:
+    import:
+      - "optional:file:.env[.properties]"
+      - "optional:file:../.env[.properties]"
+      - "optional:file:../../.env[.properties]"
+  security:
+    user:
+      name: ${EUREKA_USER}
+      password: ${EUREKA_PASSWORD}
+eureka:
+  instance:
+    hostname: ${EUREKA_HOSTNAME:localhost}
+  server:
+    enable-self-preservation: true
+  client:
+    register-with-eureka: ${EUREKA_REGISTER_SELF}
+    fetch-registry: ${EUREKA_FETCH_REGISTRY}
+    service-url:
+      defaultZone: ${EUREKA_PEERS:http://${EUREKA_USER}:${EUREKA_PASSWORD}@localhost:8761/eureka}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

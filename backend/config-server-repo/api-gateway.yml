@@ -1,0 +1,70 @@
+server:
+  port: ${SERVER_PORT:${PORT:8080}}
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns:
+              - ${FRONTEND_PUBLIC_URL}
+              # Local Vite fallback when compose env only sets localhost:5173
+              - http://localhost:5173
+              - http://localhost:5174
+              - http://127.0.0.1:5173
+              - http://127.0.0.1:5174
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowed-headers:
+              - '*'
+            allow-credentials: true
+      discovery:
+        locator:
+          enabled: ${GATEWAY_DISCOVERY_LOCATOR_ENABLED:false}
+      httpclient:
+        connect-timeout: ${GATEWAY_HTTP_CONNECT_TIMEOUT_MS:3000}
+        response-timeout: ${GATEWAY_HTTP_RESPONSE_TIMEOUT:30s}
+      routes:
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URI:${AUTH_SERVICE_URL:http://auth-service:8081}}
+          predicates: [Path=/api/v1/auth/**]
+        - id: user-service
+          uri: ${USER_SERVICE_URI:${USER_SERVICE_URL:http://user-service:8082}}
+          predicates: [Path=/api/v1/users/**]
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URI:${NOTIFICATION_SERVICE_URL:http://notification-service:8083}}
+          predicates: [Path=/api/v1/notifications/**]
+        - id: ai-service
+          uri: ${AI_SERVICE_URI:${AI_SERVICE_URL:http://ai-service:8086}}
+          predicates: [Path=/api/v1/ai/**]
+        - id: payment-service
+          uri: ${PAYMENT_SERVICE_URI:${PAYMENT_SERVICE_URL:http://payment-service:8084}}
+          predicates: [Path=/api/v1/payments/**]
+        - id: file-service
+          uri: ${FILE_SERVICE_URI:${FILE_SERVICE_URL:http://file-service:8085}}
+          predicates: [Path=/api/v1/files/**]
+        - id: audit-service
+          uri: ${AUDIT_SERVICE_URI:${AUDIT_SERVICE_URL:http://audit-service:8087}}
+          predicates: [Path=/api/v1/audit/**]
+gateway:
+  jwt:
+    jwks-url: ${AUTH_JWKS_URL:http://auth-service:8081/api/v1/auth/.well-known/jwks.json}
+management:
+  health:
+    redis:
+      enabled: ${MANAGEMENT_HEALTH_REDIS_ENABLED:false}
+    discovery:
+      enabled: ${MANAGEMENT_HEALTH_DISCOVERY_ENABLED:false}

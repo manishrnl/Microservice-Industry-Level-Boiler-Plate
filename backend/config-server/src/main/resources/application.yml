@@ -1,0 +1,32 @@
+server:
+  port: ${SERVER_PORT:${PORT:8888}}
+spring:
+  application:
+    name: config-server
+  config:
+    import:
+      - "optional:file:.env[.properties]"
+      - "optional:file:../.env[.properties]"
+      - "optional:file:../../.env[.properties]"
+  profiles:
+    active: ${CONFIG_SERVER_BACKEND}
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ${CONFIG_NATIVE_SEARCH_LOCATIONS}
+        git:
+          uri: ${CONFIG_GIT_URI}
+          default-label: ${CONFIG_GIT_LABEL}
+          search-paths: ${CONFIG_GIT_SEARCH_PATHS}
+          username: ${CONFIG_GIT_USERNAME}
+          password: ${CONFIG_GIT_TOKEN}
+        encrypt:
+          enabled: true
+encrypt:
+  key: ${CONFIG_ENCRYPT_KEY}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,prometheus

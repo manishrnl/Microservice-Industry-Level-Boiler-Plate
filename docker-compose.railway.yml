@@ -1,0 +1,93 @@
+
+ Railway: use with docker-compose.yml
+# Local test: docker compose -f docker-compose.yml -f docker-compose.railway.yml up -d --build
+# Railway: drag this file (or both) onto the project canvas, or set Compose path in settings.
+
+include:
+  - docker-compose.yml
+
+services:
+  # Use Neon + Aiven from .env — do not run these on Railway (delete imported services if created).
+  postgres:
+    profiles: ["local-infra"]
+  redis:
+    profiles: ["local-infra"]
+  kafka:
+    profiles: ["local-infra"]
+  kafka-topics:
+    profiles: ["local-infra"]
+
+  frontend:
+    profiles: ["local-dev"]
+  mailhog:
+    profiles: ["local-dev"]
+  zipkin:
+    profiles: ["local-dev"]
+  prometheus:
+    profiles: ["local-dev"]
+  grafana:
+    profiles: ["local-dev"]
+
+  # Only api-gateway needs a public Railway domain.
+  api-gateway:
+    ports:
+      - "8080:8080"
+
+  config-server:
+    ports: []
+  discovery-server:
+    ports: []
+  auth-service:
+    ports: []
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+  user-service:
+    ports: []
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+  notification-service:
+    ports: []
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+  payment-service:
+    ports: []
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+  file-service:
+    ports: []
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+  ai-service:
+    ports: []
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+  audit-service:
+    ports: []
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+
+  minio:
+    ports: []

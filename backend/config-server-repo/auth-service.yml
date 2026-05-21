@@ -1,0 +1,115 @@
+server:
+  port: ${SERVER_PORT:${PORT:8081}}
+spring:
+  datasource:
+    url: ${AUTH_DATABASE_URL}
+    username: ${AUTH_DATABASE_USERNAME}
+    password: ${AUTH_DATABASE_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+  mail:
+    host: ${MAIL_HOST:smtp-relay.brevo.com}
+    port: ${MAIL_PORT:465}
+    username: ${BREVO_USERNAME:}
+    password: ${BREVO_PASSWORD:}
+    properties:
+      mail:
+        debug: ${MAIL_DEBUG:false}
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+            socketFactory:
+              port: 465
+              class: javax.net.ssl.SSLSocketFactory
+              fallback: false
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+          starttls:
+            enable: true
+            required: true
+          fromEmail: ${BREVO_FROM_EMAIL:${MAIL_FROM:no-reply@platform.local}}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_OAUTH_CLIENT_ID}
+            client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+            redirect-uri: ${BACKEND_PUBLIC_URL}/api/v1/auth/oauth2/callback/{registrationId}
+          github:
+            client-id: ${GITHUB_OAUTH_CLIENT_ID}
+            client-secret: ${GITHUB_OAUTH_CLIENT_SECRET}
+            scope:
+              - read:user
+              - user:email
+            redirect-uri: ${BACKEND_PUBLIC_URL}/api/v1/auth/oauth2/callback/{registrationId}
+          linkedin:
+            client-id: ${LINKEDIN_OAUTH_CLIENT_ID}
+            client-secret: ${LINKEDIN_OAUTH_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            scope:
+              - openid
+              - profile
+              - email
+            redirect-uri: ${BACKEND_PUBLIC_URL}/api/v1/auth/oauth2/callback/{registrationId}
+        provider:
+          linkedin:
+            issuer-uri: ${LINKEDIN_ISSUER_URI}
+            authorization-uri: ${LINKEDIN_AUTHORIZATION_URI}
+            token-uri: ${LINKEDIN_TOKEN_URI}
+            user-info-uri: ${LINKEDIN_USER_INFO_URI}
+            user-name-attribute: sub
+management:
+  health:
+    mail:
+      enabled: ${MAIL_HEALTH_ENABLED:false}
+security:
+  jwt:
+    key-id: ${JWT_KEY_ID}
+    issuer: ${JWT_ISSUER}
+    access-token-minutes: ${JWT_ACCESS_TOKEN_MINUTES}
+    refresh-token-days: ${JWT_REFRESH_TOKEN_DAYS}
+oauth:
+  redirect-base-url: ${BACKEND_PUBLIC_URL}
+  frontend-redirect-url: ${FRONTEND_PUBLIC_URL}
+  providers:
+    google:
+      client-id: ${GOOGLE_OAUTH_CLIENT_ID}
+      client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      authorization-uri: ${GOOGLE_AUTHORIZATION_URI}
+      token-uri: https://oauth2.googleapis.com/token
+      user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+      scopes: ${GOOGLE_OAUTH_SCOPES}
+    github:
+      client-id: ${GITHUB_OAUTH_CLIENT_ID}
+      client-secret: ${GITHUB_OAUTH_CLIENT_SECRET}
+      authorization-uri: ${GITHUB_AUTHORIZATION_URI}
+      token-uri: https://github.com/login/oauth/access_token
+      user-info-uri: https://api.github.com/user
+      scopes: ${GITHUB_OAUTH_SCOPES}
+    linkedin:
+      client-id: ${LINKEDIN_OAUTH_CLIENT_ID}
+      client-secret: ${LINKEDIN_OAUTH_CLIENT_SECRET}
+      authorization-uri: ${LINKEDIN_AUTHORIZATION_URI}
+      token-uri: ${LINKEDIN_TOKEN_URI}
+      user-info-uri: ${LINKEDIN_USER_INFO_URI}
+      scopes: ${LINKEDIN_OAUTH_SCOPES}
+app:
+  frontend-base-url: ${FRONTEND_PUBLIC_URL}
+  mail:
+    provider: ${MAIL_PROVIDER:brevo}
+    from: ${BREVO_FROM_EMAIL:${MAIL_FROM:no-reply@platform.local}}
+    from-name: ${MAIL_FROM_NAME:Platform}
+    brevo:
+      api-key: ${BREVO_API_KEY:}

@@ -1,0 +1,7 @@
+server:
+  port: ${SERVER_PORT:${PORT:8083}}
+spring:
+  datasource:
+    url: ${NOTIFICATION_DATABASE_URL}
+    username: ${NOTIFICATION_DATABASE_USERNAME}
+    password: ${NOTIFICATION_DATABASE_PASSWORD}

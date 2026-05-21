@@ -1,0 +1,10 @@
+resources:
+  - ../../base/api-gateway
+  - ../../base/auth-service
+  - ../../base/user-service
+  - ../../base/notification-service
+  - ../../base/payment-service
+  - ../../base/file-service
+  - ../../base/ai-service
+  - ../../base/audit-service
+namespace: microservice-platform

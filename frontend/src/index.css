@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: #f7f8fb;
+    color: #172033;
+}
+
+.dark body {
+    background: #080b12;
+    color: #e7edf7;
+}

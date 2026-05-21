@@ -1,0 +1,31 @@
+server:
+  port: ${SERVER_PORT:${PORT:8086}}
+spring:
+  datasource:
+    url: ${AI_DATABASE_URL}
+    username: ${AI_DATABASE_USERNAME}
+    password: ${AI_DATABASE_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+ai:
+  provider:
+    primary: gemini
+    fallback: groq
+  gemini:
+    base-url: ${GEMINI_BASE_URL}
+    model: ${GEMINI_MODEL}
+    api-key: ${GEMINI_API_KEY}
+  groq:
+    base-url: ${GROQ_BASE_URL}
+    model: ${GROQ_MODEL}
+    api-key: ${GROQ_API_KEY}
+  rate-limit:
+    requests-per-minute: ${AI_RATE_LIMIT_PER_MINUTE}
+  context:
+    max-messages: ${AI_CONTEXT_MAX_MESSAGES}
+    cache-ttl-hours: ${AI_CONTEXT_CACHE_TTL_HOURS}

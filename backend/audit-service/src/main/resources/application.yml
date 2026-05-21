@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: audit-service
+  config:
+    import:
+      - "optional:file:.env[.properties]"
+      - "optional:file:../.env[.properties]"
+      - "optional:file:../../.env[.properties]"
+      - "optional:configserver:${CONFIG_SERVER_URL:http://config-server:8888}"

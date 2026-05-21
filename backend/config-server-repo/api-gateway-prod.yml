@@ -1,0 +1,14 @@
+# Applied when api-gateway runs with SPRING_PROFILES_ACTIVE=prod on Render.
+# Set AUTH_SERVICE_URL (and other *_SERVICE_URL) on the api-gateway Render service.
+# Docker hostnames like auth-service do not exist outside docker-compose.
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:false}
+
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: ${GATEWAY_DISCOVERY_LOCATOR_ENABLED:false}

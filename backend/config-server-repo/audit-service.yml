@@ -1,0 +1,9 @@
+server:
+  port: ${SERVER_PORT:${PORT:8087}}
+spring:
+  datasource:
+    url: ${AUDIT_DATABASE_URL}
+    username: ${AUDIT_DATABASE_USERNAME}
+    password: ${AUDIT_DATABASE_PASSWORD}
+audit:
+  retention-days: ${AUDIT_RETENTION_DAYS}

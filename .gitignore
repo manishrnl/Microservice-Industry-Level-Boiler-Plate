@@ -1,0 +1,16 @@
+target/
+frontend/node_modules/
+frontend/dist/
+*.log
+.idea/
+.vscode/
+.env
+.env.render
+.env.railway
+frontend/.env.local
+frontend/.env.*.local
+dist
+node_modules
+/frontend/.env.dev
+/frontend/.env.prod
+/frontend/package-lock.json

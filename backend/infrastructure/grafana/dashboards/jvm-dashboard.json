@@ -1,0 +1,15 @@
+{
+  "title": "Platform JVM",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP Requests",
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count[1m])) by (application)"
+        }
+      ]
+    }
+  ]
+}

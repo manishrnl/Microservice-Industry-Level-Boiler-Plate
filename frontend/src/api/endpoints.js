@@ -34,6 +34,7 @@ const endpoints = {
         stream: `${api}/api/v1/notifications/stream`,
         markRead: (id) => `${api}/api/v1/notifications/${id}/read`,
         markAllRead: `${api}/api/v1/notifications/read-all`,
+        deleteAll: `${api}/api/v1/notifications`,
         delete: (id) => `${api}/api/v1/notifications/${id}`
     },
     ai: {

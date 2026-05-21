@@ -125,19 +125,19 @@ const PaymentsPage = () => {
                     <p className="mt-3 text-sm font-medium text-slate-600">Confirming Stripe
                         payment...</p>}
                 {latestPayment ? <dl className="mt-4 grid gap-3 text-sm">
-                    <div className="flex justify-between border-b pb-2">
+                    <div className="grid gap-1 border-b pb-2 sm:grid-cols-[120px_1fr]">
                         <dt className="text-slate-500">Payment ID</dt>
-                        <dd className="font-medium">{latestPayment.paymentId}</dd>
+                        <dd className="min-w-0 break-words font-medium sm:text-right">{latestPayment.paymentId}</dd>
                     </div>
-                    <div className="flex justify-between border-b pb-2">
+                    <div className="flex justify-between gap-3 border-b pb-2">
                         <dt className="text-slate-500">Provider</dt>
                         <dd className="font-medium">{latestPayment.provider ?? "STRIPE"}</dd>
                     </div>
-                    <div className="flex justify-between border-b pb-2">
+                    <div className="flex justify-between gap-3 border-b pb-2">
                         <dt className="text-slate-500">Status</dt>
                         <dd className="font-medium">{latestPayment.status}</dd>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-3">
                         <dt className="text-slate-500">Amount</dt>
                         <dd className="font-medium">{latestPayment.amount} {latestPayment.currency}</dd>
                     </div>
@@ -171,7 +171,7 @@ const PaymentsPage = () => {
                     >
                         <div>
                             <p className="font-medium text-slate-950">{item.description || "Platform payment"}</p>
-                            <p className="text-xs text-slate-500">{item.paymentId}</p>
+                            <p className="break-words text-xs text-slate-500">{item.paymentId}</p>
                         </div>
                         <p className="font-medium text-slate-950">{item.amount} {item.currency}</p>
                         <p className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{item.status}</p>

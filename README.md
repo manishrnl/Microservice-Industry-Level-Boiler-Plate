@@ -186,7 +186,7 @@ The example file contains safe local defaults for Docker networking. Update thes
 | Variable | Purpose |
 | --- | --- |
 | `VITE_API_GATEWAY_URL` | Public URL used by the frontend for API calls. Default: `http://localhost:8080` |
-| `VITE_FRONTEND_PUBLIC_URL` | Browser origin for OAuth redirects and CORS. Default: `https://manishrnl-microservice-template.netlify.app` |
+| `VITE_FRONTEND_PUBLIC_URL` | Browser origin for OAuth redirects and CORS. Default: `http://localhost:5173` |
 | `FRONTEND_PUBLIC_URL` | Backend-side allowed frontend origin |
 | `BACKEND_PUBLIC_URL` | Public backend gateway URL |
 | `CONFIG_SERVER_BACKEND` | `git` or `native` config source |
@@ -210,7 +210,7 @@ docker compose --profile local-infra up --build
 
 This starts:
 
-- Frontend on `https://manishrnl-microservice-template.netlify.app`
+- Frontend on `http://localhost:5173`
 - API Gateway on `http://localhost:8080`
 - Config Server on `http://localhost:8888`
 - Eureka on `http://localhost:8761`
@@ -237,7 +237,7 @@ docker compose --profile local-infra down -v
 
 After the stack is healthy, open:
 
-- Frontend: `https://manishrnl-microservice-template.netlify.app`
+- Frontend: `http://localhost:5173`
 - API Gateway health: `http://localhost:8080/actuator/health`
 - Eureka dashboard: `http://localhost:8761`
 - MailHog: `http://localhost:8025`
@@ -262,7 +262,7 @@ Default local values:
 
 ```text
 VITE_API_GATEWAY_URL=http://localhost:8080
-VITE_FRONTEND_PUBLIC_URL=https://manishrnl-microservice-template.netlify.app
+VITE_FRONTEND_PUBLIC_URL=http://localhost:5173
 VITE_OAUTH_PROVIDERS=google,github,linkedin
 ```
 
@@ -574,7 +574,7 @@ Production frontend environment values are configured there:
 ```text
 VITE_APP_ENV=production
 VITE_API_GATEWAY_URL=https://microservice-industry-level-boiler-plate.onrender.com
-VITE_FRONTEND_PUBLIC_URL=https://manishrnl-microservice-template.netlify.app
+VITE_FRONTEND_PUBLIC_URL=http://localhost:5173
 ```
 
 ### Backend with Docker Compose
@@ -684,8 +684,8 @@ Check that these values match your browser URL exactly:
 
 ```text
 VITE_API_GATEWAY_URL=http://localhost:8080
-VITE_FRONTEND_PUBLIC_URL=https://manishrnl-microservice-template.netlify.app
-FRONTEND_PUBLIC_URL=https://manishrnl-microservice-template.netlify.app
+VITE_FRONTEND_PUBLIC_URL=http://localhost:5173
+FRONTEND_PUBLIC_URL=http://localhost:5173
 ```
 
 If Vite starts on `5174`, update `FRONTEND_PUBLIC_URL` and `VITE_FRONTEND_PUBLIC_URL`, or stop the process using `5173`.
@@ -731,7 +731,7 @@ http://localhost:8080/api/v1/auth/oauth2/callback/{provider}
 Also confirm the frontend public URL is correct:
 
 ```text
-FRONTEND_PUBLIC_URL=https://manishrnl-microservice-template.netlify.app
+FRONTEND_PUBLIC_URL=http://localhost:5173
 ```
 
 ### AI chat does not respond

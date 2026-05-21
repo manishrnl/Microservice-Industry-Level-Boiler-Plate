@@ -13,12 +13,14 @@ spring:
     password: ${AUTH_DATABASE_PASSWORD}
     hikari:
       pool-name: auth-service-hikari
-      maximum-pool-size: ${AUTH_DB_POOL_MAX_SIZE:30}
-      minimum-idle: ${AUTH_DB_POOL_MIN_IDLE:5}
-      connection-timeout: ${AUTH_DB_CONNECTION_TIMEOUT_MS:2000}
-      validation-timeout: ${AUTH_DB_VALIDATION_TIMEOUT_MS:1000}
-      idle-timeout: ${AUTH_DB_IDLE_TIMEOUT_MS:300000}
-      max-lifetime: ${AUTH_DB_MAX_LIFETIME_MS:900000}
+      maximum-pool-size: ${AUTH_DB_POOL_MAX_SIZE:${DB_POOL_MAX_SIZE:5}}
+      minimum-idle: ${AUTH_DB_POOL_MIN_IDLE:${DB_POOL_MIN_IDLE:0}}
+      connection-timeout: ${AUTH_DB_CONNECTION_TIMEOUT_MS:${DB_CONNECTION_TIMEOUT_MS:10000}}
+      validation-timeout: ${AUTH_DB_VALIDATION_TIMEOUT_MS:${DB_VALIDATION_TIMEOUT_MS:5000}}
+      idle-timeout: ${AUTH_DB_IDLE_TIMEOUT_MS:${DB_IDLE_TIMEOUT_MS:60000}}
+      max-lifetime: ${AUTH_DB_MAX_LIFETIME_MS:${DB_MAX_LIFETIME_MS:180000}}
+      keepalive-time: ${AUTH_DB_KEEPALIVE_TIME_MS:${DB_KEEPALIVE_TIME_MS:60000}}
+      connection-test-query: SELECT 1
       leak-detection-threshold: ${AUTH_DB_LEAK_DETECTION_MS:0}
   jpa:
     open-in-view: false
@@ -127,6 +129,7 @@ oauth:
       scopes: ${LINKEDIN_OAUTH_SCOPES}
 app:
   frontend-base-url: ${FRONTEND_PUBLIC_URL}
+  notification-service-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8083}
   mail:
     provider: ${MAIL_PROVIDER:brevo}
     from: ${BREVO_FROM_EMAIL:${MAIL_FROM:no-reply@platform.local}}

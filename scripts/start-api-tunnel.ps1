@@ -7,7 +7,7 @@ $target = "http://127.0.0.1:$Port"
 
 Write-Host "Starting an HTTPS tunnel to $target"
 Write-Host "After it prints a public https:// URL, open:"
-Write-Host "https://manishrnl-microservice-template.netlify.app/login?api=<that-https-url>"
+Write-Host "http://localhost:5173/login?api=<that-https-url>"
 Write-Host ""
 
 if (Get-Command cloudflared -ErrorAction SilentlyContinue) {

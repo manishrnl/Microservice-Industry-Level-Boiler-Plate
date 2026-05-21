@@ -1,40 +1,58 @@
 package com.company.platform.notification;
 
 import com.company.platform.commons.dto.NotificationDto;
-import com.company.platform.commons.enums.NotificationCategory;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/notifications")
 class NotificationController {
+    private final NotificationService notifications;
+
     @GetMapping
-    List<NotificationDto> list() {
-        return List.of(new NotificationDto(UUID.randomUUID(), NotificationCategory.SYSTEM, "Welcome", "Your notification stream is ready.", "/dashboard", false, LocalDateTime.now()));
+    List<NotificationDto> list(@RequestHeader("X-User-Id") UUID userId) {
+        return notifications.list(userId);
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    SseEmitter stream() throws Exception {
+    SseEmitter stream(@RequestHeader("X-User-Id") UUID userId) throws Exception {
         SseEmitter emitter = new SseEmitter(Duration.ofHours(6).toMillis());
-        emitter.send(SseEmitter.event().name("notification").data(list().getFirst()));
+        emitter.send(SseEmitter.event().comment("connected"));
         return emitter;
     }
 
     @PatchMapping("/{id}/read")
-    void markRead(@PathVariable UUID id) {
+    NotificationDto markRead(@RequestHeader("X-User-Id") UUID userId, @PathVariable UUID id) {
+        return notifications.markRead(userId, id);
     }
 
     @PatchMapping("/read-all")
-    void markAllRead() {
+    List<NotificationDto> markAllRead(@RequestHeader("X-User-Id") UUID userId) {
+        notifications.markAllRead(userId);
+        return notifications.list(userId);
     }
 
     @DeleteMapping("/{id}")
-    void delete(@PathVariable UUID id) {
+    void delete(@RequestHeader("X-User-Id") UUID userId, @PathVariable UUID id) {
+        notifications.delete(userId, id);
+    }
+
+    @DeleteMapping
+    void deleteAll(@RequestHeader("X-User-Id") UUID userId) {
+        notifications.deleteAll(userId);
+    }
+
+    @PostMapping("/internal/login")
+    @ResponseStatus(HttpStatus.CREATED)
+    List<NotificationDto> loginNotification(@RequestBody LoginNotificationRequest request) {
+        return notifications.recordLogin(request);
     }
 }

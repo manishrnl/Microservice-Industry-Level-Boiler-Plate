@@ -7,7 +7,6 @@ import com.company.platform.payment.entity.Payment;
 import com.company.platform.payment.repository.PaymentRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final ModelMapper modelMapper;
     private final ObjectMapper objectMapper;
     private final String stripeSecretKey;
     private final String stripeWebhookSecret;
@@ -43,14 +41,12 @@ public class PaymentService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     public PaymentService(PaymentRepository paymentRepository,
-                          ModelMapper modelMapper,
                           ObjectMapper objectMapper,
                           @Value("${payment.stripe.secret-key:}") String stripeSecretKey,
                           @Value("${payment.stripe.webhook-secret:${stripe.webhook.secret:}}") String stripeWebhookSecret,
                           @Value("${payment.default-currency:usd}") String defaultCurrency,
-                          @Value("${payment.frontend-base-url:https://manishrnl-microservice-template.netlify.app}") String frontendBaseUrl) {
+                          @Value("${payment.frontend-base-url:http://localhost:5173}") String frontendBaseUrl) {
         this.paymentRepository = paymentRepository;
-        this.modelMapper = modelMapper;
         this.objectMapper = objectMapper;
         this.stripeSecretKey = stripeSecretKey;
         this.stripeWebhookSecret = stripeWebhookSecret;
@@ -286,6 +282,18 @@ public class PaymentService {
     }
 
     private PaymentDto toDto(Payment payment) {
-        return modelMapper.map(payment, PaymentDto.class);
+        return new PaymentDto(
+                payment.getPaymentId(),
+                payment.getProvider(),
+                payment.getStatus(),
+                payment.getAmount(),
+                payment.getCurrency(),
+                payment.getStripeSessionId(),
+                payment.getCheckoutUrl(),
+                payment.getDescription(),
+                payment.getMessage(),
+                payment.getCreatedAt(),
+                payment.getUpdatedAt()
+        );
     }
 }

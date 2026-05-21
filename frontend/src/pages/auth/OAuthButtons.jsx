@@ -3,6 +3,7 @@ import {useEffect, useRef, useState} from "react";
 import {endpoints} from "../../api/endpoints";
 import {env} from "../../config/env";
 import {useApiActivityStore} from "../../store/apiActivityStore";
+import {getClientLocalTime, getClientTimeZone} from "../../utils/clientContext";
 
 const allProviders = [
     {
@@ -51,11 +52,17 @@ const OAuthButtons = ({mode}) => {
     useEffect(() => () => stopActivityRef.current?.(), []);
     const startOAuth = (provider) => {
         const label = allProviders.find((item) => item.provider === provider)?.label ?? provider;
+        const authorizeUrl = new URL(endpoints.auth.oauthAuthorize(provider));
+        const timeZone = getClientTimeZone();
+        if (timeZone) {
+            authorizeUrl.searchParams.set("timeZone", timeZone);
+        }
+        authorizeUrl.searchParams.set("localTime", getClientLocalTime());
         setLoadingProvider(provider);
         stopActivityRef.current?.();
         stopActivityRef.current = startActivity(`Opening ${label}`);
         window.setTimeout(() => stopActivityRef.current?.(), 18e4);
-        window.setTimeout(() => window.location.assign(endpoints.auth.oauthAuthorize(provider)), 80);
+        window.setTimeout(() => window.location.assign(authorizeUrl.toString()), 80);
     };
     if (providers.length === 0) {
         return null;

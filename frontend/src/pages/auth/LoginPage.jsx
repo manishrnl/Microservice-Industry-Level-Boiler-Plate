@@ -39,14 +39,22 @@ const LoginPage = () => {
         }
     });
     const setAuth = useAuthStore((state) => state.setAuth);
+    const clearAuth = useAuthStore((state) => state.clearAuth);
+    const consumeAuthNotice = useAuthStore((state) => state.consumeAuthNotice);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const isLoading = useAuthStore((state) => state.isLoading);
     const navigate = useNavigate();
     useEffect(() => {
         if (isAuthenticated && !isLoading) {
-            navigate("/", {replace: true});
+            navigate("/app/dashboard", {replace: true});
         }
     }, [isAuthenticated, isLoading, navigate]);
+    useEffect(() => {
+        const notice = consumeAuthNotice();
+        if (notice) {
+            setLoginNotice(notice);
+        }
+    }, [consumeAuthNotice]);
     useEffect(() => {
         if (!verificationRequired || !resendAvailableAt) {
             setResendRemainingSeconds(0);
@@ -82,10 +90,21 @@ const LoginPage = () => {
                 deviceId: getDeviceId()
             });
             const token = unwrapApiData(response.data).accessToken;
-            const me = await apiClient.get(endpoints.auth.me, {headers: {Authorization: `Bearer ${token}`}});
+            let me;
+            try {
+                me = await apiClient.get(endpoints.auth.me, {headers: {Authorization: `Bearer ${token}`}});
+            } catch (sessionError) {
+                if (sessionError?.response?.status === 401 || sessionError?.response?.status === 403) {
+                    const notice = "Session expired. Log in again.";
+                    clearAuth(notice);
+                    setLoginNotice(notice);
+                    return;
+                }
+                throw sessionError;
+            }
             const payload = unwrapApiData(me.data);
             setAuth(payload.user, payload.accessToken ?? token);
-            navigate("/");
+            navigate("/app/dashboard");
         } catch (error) {
             if (isBrowserNetworkBlock(error)) {
                 setLoginError("Could not read the backend response. Use an HTTPS tunnel URL, then check api-gateway/auth-service logs and database health.");
@@ -104,6 +123,9 @@ const LoginPage = () => {
             setLoginError(status === 401 ? "Invalid email or password." : detail || "Could not sign in. Please try again.");
         }
     });
+    if (isLoading) {
+        return <Loader variant="fullscreen" message="Checking session"/>;
+    }
     if (isAuthenticated) {
         return <Loader variant="fullscreen" message="Opening dashboard"/>;
     }

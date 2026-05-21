@@ -8,13 +8,80 @@ body,
     height: 100%;
 }
 
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     background: #f7f8fb;
     color: #172033;
+    overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
 }
 
 .dark body {
     background: #080b12;
     color: #e7edf7;
+}
+
+.dark .app-shell .bg-white,
+.dark .app-shell .bg-white\/95 {
+    background-color: rgb(15 23 42 / 0.96);
+}
+
+.dark .app-shell .bg-slate-50,
+.dark .app-shell .bg-slate-100 {
+    background-color: rgb(30 41 59 / 0.8);
+}
+
+.dark .app-shell .border,
+.dark .app-shell .border-b,
+.dark .app-shell .border-r,
+.dark .app-shell .border-t,
+.dark .app-shell .border-slate-200 {
+    border-color: rgb(255 255 255 / 0.1);
+}
+
+.dark .app-shell .text-slate-950,
+.dark .app-shell .text-slate-900,
+.dark .app-shell .text-slate-800 {
+    color: rgb(248 250 252);
+}
+
+.dark .app-shell .text-slate-700,
+.dark .app-shell .text-slate-600,
+.dark .app-shell .text-slate-500 {
+    color: rgb(203 213 225);
+}
+
+.dark .app-shell input,
+.dark .app-shell select,
+.dark .app-shell textarea {
+    border-color: rgb(255 255 255 / 0.1);
+    background-color: rgb(15 23 42 / 0.85);
+    color: rgb(248 250 252);
+}
+
+.dark .app-shell input::placeholder,
+.dark .app-shell textarea::placeholder {
+    color: rgb(148 163 184);
+}
+
+.dark .app-shell .hover\:bg-slate-50:hover,
+.dark .app-shell .hover\:bg-slate-100:hover,
+.dark .app-shell .hover\:bg-white:hover {
+    background-color: rgb(255 255 255 / 0.1);
+}
+
+.dark .app-shell .shadow-sm,
+.dark .app-shell .shadow-xl,
+.dark .app-shell .shadow-lg {
+    box-shadow: 0 18px 45px rgb(0 0 0 / 0.22);
 }

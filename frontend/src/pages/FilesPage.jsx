@@ -51,7 +51,7 @@ const FilesPage = () => {
                     key={file.id}
                     className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b px-4 py-4 text-sm last:border-b-0"
                 >
-                    <div>
+                    <div className="min-w-0">
                         <p className="font-medium text-slate-950">{file.originalName}</p>
                         <p className="text-xs text-slate-500">{file.contentType} · {file.sizeBytes} bytes</p>
                     </div>

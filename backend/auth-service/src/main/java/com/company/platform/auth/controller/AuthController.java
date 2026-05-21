@@ -139,6 +139,8 @@ public class AuthController {
         return ClientRequestMetadataDto.builder()
                 .ipAddress(clientIp(request))
                 .userAgent(request.getHeader("User-Agent"))
+                .timeZone(request.getHeader("X-Client-Time-Zone"))
+                .localTime(request.getHeader("X-Client-Local-Time"))
                 .build();
     }
 

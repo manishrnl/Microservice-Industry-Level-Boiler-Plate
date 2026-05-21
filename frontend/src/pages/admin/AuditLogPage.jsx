@@ -36,13 +36,13 @@ const AuditLogPage = () => {
                 <div className="p-8 text-sm text-slate-500">No audit events returned by the
                     backend.</div> : audit.data?.map((event, index) => <div
                     key={`${event.traceId ?? "trace"}-${index}`}
-                    className="grid grid-cols-4 gap-3 border-b px-4 py-3 text-sm last:border-b-0"
+                    className="grid gap-2 border-b px-4 py-3 text-sm last:border-b-0 sm:grid-cols-4 sm:gap-3"
                 >
-                    <span>{event.action ?? "ACTION"}</span>
-                    <span>{event.resourceType ?? "resource"}</span>
-                    <span>{event.status ?? "status"}</span>
+                    <span className="font-medium text-slate-950">{event.action ?? "ACTION"}</span>
+                    <span className="text-slate-600">{event.resourceType ?? "resource"}</span>
+                    <span className="text-slate-600">{event.status ?? "status"}</span>
                     <span
-                        className="truncate text-slate-500"
+                        className="min-w-0 break-words text-xs text-slate-500 sm:truncate sm:text-sm"
                     >{event.traceId ?? event.createdAt}</span>
                 </div>)}
         </div>

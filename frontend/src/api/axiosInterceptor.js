@@ -3,6 +3,8 @@ import {endpoints} from "./endpoints";
 import {useAuthStore} from "../store/authStore";
 import {useApiActivityStore} from "../store/apiActivityStore";
 import {unwrapApiData} from "../utils/responseUtils";
+import {authUserFromToken} from "../utils/tokenUtils";
+import {getClientLocalTime, getClientTimeZone} from "../utils/clientContext";
 
 let refreshing = false;
 let queue = [];
@@ -29,12 +31,28 @@ const isPublicAuthRequest = (url) => {
     return publicAuthPaths.some((publicPath) => path.startsWith(publicPath));
 };
 apiClient.interceptors.request.use((config) => {
-    const stopActivity = useApiActivityStore.getState().startActivity("Contacting backend");
+    const stopActivity = useApiActivityStore.getState().startActivity("Contacting local API");
     config._stopActivity = stopActivity;
+    if (config.headers) {
+        const timeZone = getClientTimeZone();
+        if (timeZone) {
+            config.headers["X-Client-Time-Zone"] = timeZone;
+        }
+        config.headers["X-Client-Local-Time"] = getClientLocalTime();
+    }
     const token = useAuthStore.getState().accessToken;
+    const user = useAuthStore.getState().user;
     const hasAuthHeader = Boolean(config.headers?.Authorization || config.headers?.authorization);
     if (token && config.headers && !hasAuthHeader && !isPublicAuthRequest(config.url)) {
         config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (config.headers && user && !isPublicAuthRequest(config.url)) {
+        if (user.name) {
+            config.headers["X-User-Name"] = user.name;
+        }
+        if (user.email) {
+            config.headers["X-User-Email"] = user.email;
+        }
     }
     return config;
 });
@@ -74,15 +92,16 @@ apiClient.interceptors.response.use(
                 throw new Error("Refresh response did not include an access token");
             }
             const currentUser = useAuthStore.getState().user;
-            if (currentUser) {
-                useAuthStore.getState().setAuth(currentUser, token);
+            const refreshedUser = currentUser ?? authUserFromToken(token);
+            if (refreshedUser) {
+                useAuthStore.getState().setAuth(refreshedUser, token);
             }
             flushQueue(token);
             original.headers.Authorization = `Bearer ${token}`;
             return apiClient(original);
         } catch (refreshError) {
             flushQueue(null);
-            useAuthStore.getState().clearAuth();
+            useAuthStore.getState().expireSession();
             window.location.assign("/login");
             return Promise.reject(refreshError);
         } finally {

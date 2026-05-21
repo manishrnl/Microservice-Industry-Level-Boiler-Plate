@@ -15,13 +15,14 @@ spring:
         cors-configurations:
           '[/**]':
             allowed-origin-patterns:
-              - ${FRONTEND_PUBLIC_URL:https://manishrnl-microservice-template.netlify.app}
+              - ${FRONTEND_PUBLIC_URL:http://localhost:5173}
               # Local Vite fallback when compose env only sets localhost:5173
-              - https://manishrnl-microservice-template.netlify.app
               - http://localhost:5173
               - http://localhost:5174
               - http://127.0.0.1:5173
               - http://127.0.0.1:5174
+              - http://*:5173
+              - http://*:5174
             allowed-methods:
               - GET
               - POST

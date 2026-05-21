@@ -6,6 +6,7 @@ import com.company.platform.auth.dto.ClientRequestMetadataDto;
 import com.company.platform.auth.dto.OAuthLoginRequestDto;
 import com.company.platform.auth.service.AuthService;
 import com.company.platform.commons.exception.ApiExceptions;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +26,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -66,7 +68,9 @@ public class OAuthController {
     }
 
     @GetMapping("/authorize/{provider}")
-    public ResponseEntity<Void> authorize(@PathVariable("provider") String provider) {
+    public ResponseEntity<Void> authorize(@PathVariable("provider") String provider,
+                                          @RequestParam(value = "timeZone", required = false) String timeZone,
+                                          @RequestParam(value = "localTime", required = false) String localTime) {
         OAuthProviderProperties.Provider settings = provider(provider);
         URI redirectUri;
         try {
@@ -75,7 +79,7 @@ public class OAuthController {
                     .queryParam("client_id", settings.getClientId())
                     .queryParam("redirect_uri", callbackUrl(provider))
                     .queryParam("scope", scopes(settings))
-                    .queryParam("state", UUID.randomUUID().toString())
+                    .queryParam("state", encodeState(new OAuthClientContext(UUID.randomUUID().toString(), timeZone, localTime)))
                     .encode(StandardCharsets.UTF_8)
                     .build()
                     .toUri();
@@ -88,6 +92,7 @@ public class OAuthController {
     @GetMapping("/callback/{provider}")
     public ResponseEntity<Void> callback(@PathVariable("provider") String provider,
                                          @RequestParam("code") String code,
+                                         @RequestParam(value = "state", required = false) String state,
                                          HttpServletRequest request,
                                          HttpServletResponse response) {
         OAuthProviderProperties.Provider settings = provider(provider);
@@ -99,7 +104,7 @@ public class OAuthController {
                 .avatarUrl(userInfo.avatarUrl())
                 .provider(provider)
                 .providerId(userInfo.providerId())
-                .build(), clientMetadata(request));
+                .build(), clientMetadata(request, decodeState(state)));
         String accessToken = tokenResponse.getToken().getAccessToken();
         response.addHeader(HttpHeaders.SET_COOKIE, tokenResponse.getRefreshCookie());
         URI frontendRedirect = UriComponentsBuilder.fromUriString(frontendRedirectUrl())
@@ -346,14 +351,52 @@ public class OAuthController {
     }
 
     private ClientRequestMetadataDto clientMetadata(HttpServletRequest request) {
+        return clientMetadata(request, null);
+    }
+
+    private ClientRequestMetadataDto clientMetadata(HttpServletRequest request, OAuthClientContext context) {
         return ClientRequestMetadataDto.builder()
                 .ipAddress(clientIp(request))
                 .userAgent(request.getHeader("User-Agent"))
+                .timeZone(firstText(request.getHeader("X-Client-Time-Zone"), context == null ? null : context.timeZone()))
+                .localTime(firstText(request.getHeader("X-Client-Local-Time"), context == null ? null : context.localTime()))
                 .build();
+    }
+
+    private String firstText(String first, String second) {
+        return StringUtils.hasText(first) ? first : second;
+    }
+
+    private String encodeState(OAuthClientContext context) {
+        try {
+            return Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(objectMapper.writeValueAsString(context).getBytes(StandardCharsets.UTF_8));
+        } catch (JsonProcessingException ex) {
+            return Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(("{\"nonce\":\"" + UUID.randomUUID() + "\"}").getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private OAuthClientContext decodeState(String state) {
+        if (!StringUtils.hasText(state)) {
+            return null;
+        }
+        try {
+            byte[] decoded = Base64.getUrlDecoder().decode(state);
+            JsonNode node = objectMapper.readTree(decoded);
+            return new OAuthClientContext(textValue(node, "nonce"), textValue(node, "timeZone"), textValue(node, "localTime"));
+        } catch (IllegalArgumentException | IOException ex) {
+            return null;
+        }
     }
 
     private record ProviderDefaults(String authorizationUri, String tokenUri,
                                     String userInfoUri, String scopes) {
+    }
+
+    private record OAuthClientContext(String nonce, String timeZone, String localTime) {
     }
 
     private record OAuthUserInfo(String email, String name, String avatarUrl,

@@ -40,6 +40,17 @@ const extractFromObject = (value) => {
     if (record.response) {
         return extractAssistantContent(record.response);
     }
+    for (const key of ["text", "content", "message", "output", "answer"]) {
+        if (typeof record[key] === "string") {
+            return extractFromString(record[key]);
+        }
+        if (record[key]) {
+            const nested = extractAssistantContent(record[key]);
+            if (nested) {
+                return nested;
+            }
+        }
+    }
     const choices = record.choices;
     if (Array.isArray(choices)) {
         const message = choices[0]?.message;

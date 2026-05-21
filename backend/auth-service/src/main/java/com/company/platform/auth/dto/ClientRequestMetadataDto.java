@@ -12,4 +12,6 @@ import lombok.NoArgsConstructor;
 public class ClientRequestMetadataDto {
     private String ipAddress;
     private String userAgent;
+    private String timeZone;
+    private String localTime;
 }

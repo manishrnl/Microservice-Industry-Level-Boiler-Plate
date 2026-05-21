@@ -3,8 +3,8 @@ import {create} from "zustand";
 const useApiActivityStore = create((set) => ({
     pendingCount: 0,
     startedAt: null,
-    message: "Contacting backend",
-    startActivity: (message = "Contacting backend") => {
+    message: "Contacting local API",
+    startActivity: (message = "Contacting local API") => {
         let active = true;
         set((state) => ({
             pendingCount: state.pendingCount + 1,
@@ -21,7 +21,7 @@ const useApiActivityStore = create((set) => ({
                 return {
                     pendingCount: nextCount,
                     startedAt: nextCount === 0 ? null : state.startedAt,
-                    message: nextCount === 0 ? "Contacting backend" : state.message
+                    message: nextCount === 0 ? "Contacting local API" : state.message
                 };
             });
         };

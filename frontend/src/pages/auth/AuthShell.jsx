@@ -30,7 +30,7 @@ const AuthShell = ({title, subtitle, children}) => <main
             <ThemeToggle/>
         </header>
         <section
-            className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-5 pb-8 lg:grid-cols-[minmax(0,1fr)_440px]"
+            className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 pb-8 sm:px-5 lg:grid-cols-[minmax(0,1fr)_440px]"
         >
             <div className="hidden max-w-xl lg:block">
                 <div
@@ -63,7 +63,7 @@ const AuthShell = ({title, subtitle, children}) => <main
                 </div>
             </div>
             <div
-                className="mx-auto w-full max-w-[440px] rounded-lg border border-white/80 bg-white/[0.92] p-7 shadow-[0_28px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-white/10 dark:bg-[#0b1120]/[0.88] dark:shadow-black/40"
+                className="mx-auto w-full max-w-[440px] rounded-lg border border-white/80 bg-white/[0.92] p-5 shadow-[0_28px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl sm:p-7 dark:border-white/10 dark:bg-[#0b1120]/[0.88] dark:shadow-black/40"
             >
                 <div className="mb-6">
                     <p className="mb-2 text-xs font-semibold uppercase text-teal-700 dark:text-teal-300">Secure

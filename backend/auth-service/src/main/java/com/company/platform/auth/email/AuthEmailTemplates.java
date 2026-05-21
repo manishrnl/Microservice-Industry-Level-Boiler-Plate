@@ -8,7 +8,7 @@ import org.springframework.util.StringUtils;
 public class AuthEmailTemplates {
     private final String frontendBaseUrl;
 
-    public AuthEmailTemplates(@Value("${app.frontend-base-url:https://manishrnl-microservice-template.netlify.app}") String frontendBaseUrl) {
+    public AuthEmailTemplates(@Value("${app.frontend-base-url:http://localhost:5173}") String frontendBaseUrl) {
         this.frontendBaseUrl = frontendBaseUrl;
     }
 

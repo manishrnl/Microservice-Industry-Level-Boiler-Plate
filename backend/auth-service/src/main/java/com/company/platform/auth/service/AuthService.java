@@ -46,6 +46,7 @@ public class AuthService {
     private final RefreshTokenCookieFactory cookieFactory;
     private final RsaKeyService rsaKeyService;
     private final JdbcTemplate jdbcTemplate;
+    private final AuthNotificationService notificationService;
 
     public UserDto signup(SignupRequestDto request) {
         validatePasswordMatch(request.getPassword(), request.getConfirmPassword());
@@ -301,6 +302,7 @@ public class AuthService {
         String sessionId = UUID.randomUUID().toString();
         sessionService.create(user, sessionId, deviceId, metadata.getIpAddress(), metadata.getUserAgent());
         mailService.sendLoginNotice(email);
+        notificationService.loginDetected(user, sessionId, metadata);
         TokenDto token = TokenDto.builder()
                 .accessToken(jwtTokenService.createAccessToken(user.getId(), email, Set.of(RoleType.USER), sessionId, user.getFullName()))
                 .tokenType("Bearer")

@@ -13,11 +13,11 @@ const UserManagementPage = () => {
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
             {(users.data ?? []).map((user) => <div
                 key={user.userId}
-                className="grid grid-cols-3 border-b px-4 py-3 text-sm last:border-0"
+                className="grid gap-2 border-b px-4 py-3 text-sm last:border-0 sm:grid-cols-[1fr_1.4fr_1fr]"
             >
-                <span>{user.name}</span>
-                <span>{user.email}</span>
-                <span>{user.roles.join(", ")}</span>
+                <span className="font-medium text-slate-950">{user.name}</span>
+                <span className="min-w-0 break-words text-slate-600 sm:truncate">{user.email}</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{user.roles.join(", ")}</span>
             </div>)}
         </div>
     </PageWrapper>;

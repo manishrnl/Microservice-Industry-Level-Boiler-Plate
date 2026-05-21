@@ -44,7 +44,8 @@ export default defineConfig(({mode}) => {
             "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv)
         },
         server: {
-            port: 5173
+            port: 5173,
+            strictPort: true
         }
     };
 });

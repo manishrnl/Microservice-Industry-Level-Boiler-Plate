@@ -25,11 +25,11 @@ const OAuthCallbackPage = () => {
             apiClient.get(endpoints.auth.me, {headers: {Authorization: `Bearer ${token}`}}).then((response) => {
                 const payload = unwrapApiData(response.data);
                 setAuth(payload.user, payload.accessToken ?? token);
-                navigate("/", {replace: true});
+                navigate("/app/dashboard", {replace: true});
             }).catch(() => {
                 if (fallbackUser) {
                     setAuth(fallbackUser, token);
-                    navigate("/", {replace: true});
+                    navigate("/app/dashboard", {replace: true});
                     return;
                 }
                 navigate("/login", {replace: true});

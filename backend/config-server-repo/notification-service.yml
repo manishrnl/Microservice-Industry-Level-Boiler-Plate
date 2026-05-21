@@ -5,3 +5,5 @@ spring:
     url: ${NOTIFICATION_DATABASE_URL}
     username: ${NOTIFICATION_DATABASE_USERNAME}
     password: ${NOTIFICATION_DATABASE_PASSWORD}
+  jpa:
+    open-in-view: false

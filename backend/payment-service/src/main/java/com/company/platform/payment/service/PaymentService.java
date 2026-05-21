@@ -48,7 +48,7 @@ public class PaymentService {
                           @Value("${payment.stripe.secret-key:}") String stripeSecretKey,
                           @Value("${payment.stripe.webhook-secret:${stripe.webhook.secret:}}") String stripeWebhookSecret,
                           @Value("${payment.default-currency:usd}") String defaultCurrency,
-                          @Value("${payment.frontend-base-url:http://localhost:5173}") String frontendBaseUrl) {
+                          @Value("${payment.frontend-base-url:https://manishrnl-microservice-template.netlify.app}") String frontendBaseUrl) {
         this.paymentRepository = paymentRepository;
         this.modelMapper = modelMapper;
         this.objectMapper = objectMapper;

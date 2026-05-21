@@ -7,7 +7,7 @@ spring:
     password: ${PAYMENT_DATABASE_PASSWORD}
 payment:
   default-currency: ${STRIPE_CURRENCY:usd}
-  frontend-base-url: ${FRONTEND_PUBLIC_URL:http://localhost:5173}
+  frontend-base-url: ${FRONTEND_PUBLIC_URL:https://manishrnl-microservice-template.netlify.app}
   stripe:
     secret-key: ${STRIPE_API_KEY:${STRIPE_SECRET_KEY:}}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:}

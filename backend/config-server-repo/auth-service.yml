@@ -97,6 +97,9 @@ security:
     issuer: ${JWT_ISSUER}
     access-token-minutes: ${JWT_ACCESS_TOKEN_MINUTES}
     refresh-token-days: ${JWT_REFRESH_TOKEN_DAYS}
+  cookies:
+    secure: ${SECURITY_COOKIES_SECURE:false}
+    same-site: ${SECURITY_COOKIES_SAME_SITE:Lax}
 oauth:
   redirect-base-url: ${BACKEND_PUBLIC_URL}
   frontend-redirect-url: ${FRONTEND_PUBLIC_URL}

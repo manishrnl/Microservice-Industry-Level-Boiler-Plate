@@ -24,6 +24,7 @@ spring:
               # Vite picks 5174 if 5173 is busy; localhost vs 127.0.0.1 differ by browser origin string
               - ${FRONTEND_PUBLIC_URL:https://manishrnl-microservice-template.netlify.app}
               - https://manishrnl-microservice-template.netlify.app
+              - http://localhost:5173
               - http://localhost:5174
               - http://127.0.0.1:5173
               - http://127.0.0.1:5174
@@ -37,6 +38,7 @@ spring:
             allowed-headers:
               - '*'
             allow-credentials: true
+            allow-private-network: true
       discovery:
         locator:
           enabled: ${GATEWAY_DISCOVERY_LOCATOR_ENABLED:false}

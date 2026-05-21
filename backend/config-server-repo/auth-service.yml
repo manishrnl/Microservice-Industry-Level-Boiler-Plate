@@ -1,10 +1,27 @@
 server:
   port: ${SERVER_PORT:${PORT:8081}}
+  tomcat:
+    threads:
+      max: ${AUTH_TOMCAT_MAX_THREADS:300}
+      min-spare: ${AUTH_TOMCAT_MIN_SPARE_THREADS:30}
+    accept-count: ${AUTH_TOMCAT_ACCEPT_COUNT:1000}
+    max-connections: ${AUTH_TOMCAT_MAX_CONNECTIONS:10000}
 spring:
   datasource:
     url: ${AUTH_DATABASE_URL}
     username: ${AUTH_DATABASE_USERNAME}
     password: ${AUTH_DATABASE_PASSWORD}
+    hikari:
+      pool-name: auth-service-hikari
+      maximum-pool-size: ${AUTH_DB_POOL_MAX_SIZE:30}
+      minimum-idle: ${AUTH_DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${AUTH_DB_CONNECTION_TIMEOUT_MS:2000}
+      validation-timeout: ${AUTH_DB_VALIDATION_TIMEOUT_MS:1000}
+      idle-timeout: ${AUTH_DB_IDLE_TIMEOUT_MS:300000}
+      max-lifetime: ${AUTH_DB_MAX_LIFETIME_MS:900000}
+      leak-detection-threshold: ${AUTH_DB_LEAK_DETECTION_MS:0}
+  jpa:
+    open-in-view: false
   data:
     redis:
       host: ${REDIS_HOST}

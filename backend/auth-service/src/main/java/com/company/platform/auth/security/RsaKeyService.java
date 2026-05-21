@@ -15,6 +15,7 @@ import java.util.UUID;
 @Service
 public class RsaKeyService {
     private final RSAKey rsaKey;
+    private final Map<String, Object> publicJwks;
 
     public RsaKeyService(@Value("${security.jwt.key-id}") String keyId) {
         try {
@@ -25,6 +26,7 @@ public class RsaKeyService {
                     .privateKey((RSAPrivateKey) pair.getPrivate())
                     .keyID(keyId + "-" + UUID.randomUUID())
                     .build();
+            this.publicJwks = new JWKSet(rsaKey.toPublicJWK()).toJSONObject();
         } catch (Exception ex) {
             throw new IllegalStateException("Unable to create RSA key", ex);
         }
@@ -35,6 +37,6 @@ public class RsaKeyService {
     }
 
     public Map<String, Object> jwks() {
-        return new JWKSet(rsaKey.toPublicJWK()).toJSONObject();
+        return publicJwks;
     }
 }

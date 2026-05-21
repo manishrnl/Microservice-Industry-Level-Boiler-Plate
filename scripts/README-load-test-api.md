@@ -50,33 +50,27 @@ node scripts/load-test-api.mjs `
 
 `--concurrency` is the maximum number of in-flight requests. If the app is too slow and the script cannot keep up, the summary will show `droppedByConcurrency`.
 
-## About 1 Lakh Requests Per Second
+## Find The Maximum Smooth RPS
 
-`1 lakh requests per second` means `100,000 RPS`.
+Do not start at `1 lakh` or `10,000` RPS. Start small, then increase until the result changes from `GOOD` to `WARNING` or `BAD`.
 
-Do not start your first test at `100000`. On a normal laptop, one Node.js process usually cannot generate a clean 100,000 RPS by itself, and Docker Desktop may become the bottleneck before your application or database does.
-
-If you still want to attempt it locally:
+For your local machine, a practical ramp looks like this:
 
 ```powershell
-node scripts/load-test-api.mjs `
-  --url http://localhost:8080/actuator/health `
-  --duration 30 `
-  --concurrency 20000 `
-  --rps 100000 `
-  --timeout 5000
+node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 50 --rps 100
+node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 100 --rps 250
+node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 200 --rps 500
+node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 400 --rps 1000
+node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 800 --rps 2000
 ```
 
-For real 100,000 RPS testing, use multiple load-generator machines or containers, then add the results together. One machine should not be trusted as proof that the backend can or cannot serve 100,000 RPS.
+The maximum smooth RPS is the highest command where:
 
-Recommended ramp-up:
-
-```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 100 --rps 500
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 500 --rps 2000
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 1000 --rps 5000
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 3000 --rps 10000
-```
+- verdict is `GOOD`
+- `hitRatioPercent >= 99`
+- `timeoutErrors = 0`
+- `droppedByConcurrency = 0`
+- `p95LatencyMs` is acceptable for your app
 
 For a huge-user production-style app, judge capacity by:
 
@@ -130,6 +124,126 @@ node scripts/load-test-api.mjs `
   --duration 20 `
   --concurrency 100
 ```
+
+## Test DB Through Your Application Without Token
+
+Use this endpoint to measure app plus DB together with a very light query:
+
+```text
+GET /api/v1/auth/db-ping
+```
+
+It goes through:
+
+```text
+client -> API gateway -> auth-service -> Postgres auth_db -> auth-service -> API gateway -> client
+```
+
+It runs a real DB query:
+
+- `select 1`
+- return DB elapsed time
+
+First verify one request:
+
+```powershell
+Invoke-RestMethod http://localhost:8080/api/v1/auth/db-ping
+```
+
+Then run a smooth DB load test:
+
+```powershell
+node scripts/load-test-api.mjs `
+  --url http://localhost:8080/api/v1/auth/db-ping `
+  --duration 30 `
+  --concurrency 50 `
+  --rps 100
+```
+
+Ramp the DB-backed API gradually:
+
+```powershell
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 100
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 100 --rps 250
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 200 --rps 500
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 400 --rps 1000
+```
+
+If `/actuator/health` is `GOOD` at high RPS but `/api/v1/auth/db-ping` becomes `WARNING` or `BAD`, your bottleneck is probably database, connection pool, or auth-service DB logic.
+
+## Test Heavier DB Table Counts
+
+Use this endpoint when you want to test heavier DB reads through your application:
+
+```text
+GET /api/v1/auth/db-stats
+```
+
+It runs:
+
+- count users
+- count sessions
+
+Verify one request:
+
+```powershell
+Invoke-RestMethod http://localhost:8080/api/v1/auth/db-stats
+```
+
+Load test table counts gently:
+
+```powershell
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 20 --rps 25
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 50 --rps 50
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 100 --rps 100
+```
+
+Do not use table-count endpoints as your only DB benchmark if tables are large. `count(*)` can be much heavier than normal indexed business queries.
+
+## What Your Previous Results Mean
+
+Direct auth-service DB test:
+
+```text
+URL: http://localhost:8081/api/v1/auth/db-ping
+RPS target: 100
+Passed: 299
+Failed: 4
+Dropped: 1569
+p95: 6109ms
+Verdict: BAD
+```
+
+Meaning:
+
+- the request reached auth-service and returned some `200` responses
+- p95 latency above 6 seconds is too high
+- `droppedByConcurrency` means the app/generator could not keep up with the target RPS
+- the observed smooth throughput was only about 8 passed requests per second
+- this is not stable for 100 RPS
+
+Gateway DB test before the gateway public-path patch:
+
+```text
+URL: http://localhost:8080/api/v1/auth/db-ping
+Status: 401
+Latency: very low
+```
+
+Meaning:
+
+- the gateway rejected the request before it reached auth-service
+- it did not test the database at all
+- after the gateway patch, this endpoint should return `200`
+
+When interpreting results:
+
+- `401` or `403`: auth/config issue, not DB efficiency
+- `429`: gateway rate limit, not DB failure
+- `timeoutErrors`: app, DB, or local machine is overloaded
+- `droppedByConcurrency`: target RPS is too high for the configured concurrency and observed latency
+- `200` with low p95 latency: healthy path
+- `200` but high p95 latency: app works but cannot handle that load smoothly
 
 ## Test Other Service Health URLs
 
@@ -218,6 +332,15 @@ Heavier DB-backed session-list read:
 ```powershell
 node scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/sessions `
+  --header "Authorization: Bearer eyJraWQiOiJwbGF0Zm9ybS1rZXktMS05NTQ1ODI2My1jNzIwLTQ5ODAtYWZjZC03NmQ5NDVkNDA3ZGYiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI2ZGM1NTdiNC0zMmQyLTRiNWUtOGI3Yy0zNTdhODhiOWRlMTQiLCJyb2xlcyI6WyJVU0VSIl0sImlzcyI6InBsYXRmb3JtLWF1dGgtc2VydmljZSIsIm5hbWUiOiJNYW5pc2ggU2FodSIsInNlc3Npb25JZCI6ImIyYWIyYWZmLTNkN2UtNDI1OS1hYTI1LTI2YmVhYWJjZjNlYiIsImV4cCI6MTc3OTMzOTQ5MSwiaWF0IjoxNzc5MzM4NTkxLCJqdGkiOiI3ZGRkYzUyYi1hYjJhLTQ0ZjgtYjkyZS02MjVkOTUzOTAyNzQiLCJlbWFpbCI6Im1hbmlzaHJhanJubEBnbWFpbC5jb20ifQ.TSEVDx61XD9Qqqj0Pt0B15AEQ2cpzdpYXck2YgxBIrgsaQ3WJG1Ha-3xo7Lin8I0e4vIfZHPMkO-lyEq-AOfR-UyPmySnBY-UJAq6o505JJCKcXgzrUxJAw7-u7UpGTA3ddFyohMKBF3uP5pUPY4lylploKCVuZKHO87Nj_NxcdJyTFvsxFdmFJFlH4F9bDspsnmMl4ZuD9wpqioLSGfF-N7vuSE90XO2tau3LUSWjOt-KuRhMBnYl_v3-hCEcV-4fKNTnxBRjHFhjU6lSmBXF3zhM3JnyNRKc25JSj9uRPA1y2ufcZSY-kjwOWhu8MD4QgtM3d19NT9SwWamql2gA" `
+  --duration 30 `
+  --concurrency 200 `
+  --rps 1000
+
+```
+```powershell
+node scripts/load-test-api.mjs `
+  --url http://localhost:8080/api/v1/auth/sessions `
   --header "Authorization: Bearer $token" `
   --duration 30 `
   --concurrency 200 `
@@ -268,6 +391,7 @@ docker compose exec postgres psql -U platform -d auth_db -c "EXPLAIN ANALYZE SEL
 --duration <seconds>    Test duration in seconds. Default: 15
 --concurrency <number>  Parallel workers. Default: 50
 --rps <number>          Target requests per second. Default: unlimited, bounded by concurrency
+--tick-ms <ms>          Scheduler tick for --rps mode. Default: 10
 --method <method>       HTTP method. Default: GET
 --header "K: V"         Request header. Can be repeated.
 --body <json/string>    Request body for POST/PUT/PATCH.
@@ -316,9 +440,11 @@ Normal users can look for:
 - `Status: GOOD` in the application verdict
 - No big `429`, `500`, `502`, `503`, or timeout counts
 
+The script also prints `Result interpretation`. Use that section as the plain-English explanation of what happened.
+
 ## Recommended Tests
 
-Start small:
+Start small with public gateway:
 
 ```powershell
 node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 10 --concurrency 10
@@ -337,6 +463,20 @@ node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-kno
 ```
 
 Expected result: after enough requests, the HTTP status counts should include `429`.
+
+Start small with DB-backed app testing:
+
+```powershell
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 100
+```
+
+If that is not `GOOD`, reduce the target:
+
+```powershell
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 10 --rps 10
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 20 --rps 25
+node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 50
+```
 
 ## Notes
 

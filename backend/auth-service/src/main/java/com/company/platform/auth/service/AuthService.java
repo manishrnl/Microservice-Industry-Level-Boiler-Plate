@@ -15,9 +15,11 @@ import com.company.platform.commons.dto.UserDto;
 import com.company.platform.commons.enums.RoleType;
 import com.company.platform.commons.exception.ApiExceptions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
@@ -43,6 +45,7 @@ public class AuthService {
     private final JwtTokenService jwtTokenService;
     private final RefreshTokenCookieFactory cookieFactory;
     private final RsaKeyService rsaKeyService;
+    private final JdbcTemplate jdbcTemplate;
 
     public UserDto signup(SignupRequestDto request) {
         validatePasswordMatch(request.getPassword(), request.getConfirmPassword());
@@ -112,7 +115,7 @@ public class AuthService {
         String email = jwt.getClaimAsString("email");
         Set<RoleType> roles = roles(jwt);
         sessionService.requireActive(jwt.getClaimAsString("sessionId"));
-        sessionService.touch(jwt.getClaimAsString("sessionId"));
+        sessionService.touchIfStale(jwt.getClaimAsString("sessionId"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
         String name = displayName(user, email, jwt.getClaimAsString("name"));
@@ -222,8 +225,39 @@ public class AuthService {
                 .build();
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Map<String, Object> jwks() {
         return rsaKeyService.jwks();
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public Map<String, Object> dbPing() {
+        long startedAt = System.nanoTime();
+        Integer result = jdbcTemplate.queryForObject("select 1", Integer.class);
+        long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
+        return Map.of(
+                "status", "ok",
+                "database", "auth_db",
+                "probe", "select_1",
+                "result", result == null ? 0 : result,
+                "elapsedMs", elapsedMs
+        );
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public Map<String, Object> dbStats() {
+        long startedAt = System.nanoTime();
+        Long users = jdbcTemplate.queryForObject("select count(*) from users", Long.class);
+        Long sessions = jdbcTemplate.queryForObject("select count(*) from user_sessions", Long.class);
+        long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
+        return Map.of(
+                "status", "ok",
+                "database", "auth_db",
+                "probe", "table_counts",
+                "elapsedMs", elapsedMs,
+                "users", users == null ? 0 : users,
+                "sessions", sessions == null ? 0 : sessions
+        );
     }
 
     private User upsertLocalUser(SignupRequestDto request) {
@@ -295,7 +329,7 @@ public class AuthService {
 
     private User currentUser(Jwt jwt) {
         sessionService.requireActive(jwt.getClaimAsString("sessionId"));
-        sessionService.touch(jwt.getClaimAsString("sessionId"));
+        sessionService.touchIfStale(jwt.getClaimAsString("sessionId"));
         return userRepository.findById(parseUuid(jwt.getSubject()))
                 .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
     }

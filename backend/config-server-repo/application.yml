@@ -27,8 +27,14 @@ management:
         enabled: true
 eureka:
   client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    register-with-eureka: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:true}
+    fetch-registry: ${EUREKA_CLIENT_FETCH_REGISTRY:true}
     service-url:
       defaultZone: ${EUREKA_URL}
+  instance:
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    instance-id: ${spring.application.name}:${server.port}
 logging:
   pattern:
     level: "%5p traceId=%X{traceId:-} spanId=%X{spanId:-} userId=%X{userId:-}"

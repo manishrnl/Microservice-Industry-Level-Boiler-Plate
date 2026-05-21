@@ -2,6 +2,7 @@ package com.company.platform.gateway.filter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -13,15 +14,39 @@ import reactor.core.publisher.Mono;
 public class RequestLoggingFilter implements GlobalFilter, Ordered {
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
 
+    private final boolean accessLogEnabled;
+    private final long slowRequestThresholdMs;
+
+    public RequestLoggingFilter(@Value("${gateway.request-logging.enabled:false}") boolean accessLogEnabled,
+                                @Value("${gateway.request-logging.slow-threshold-ms:1000}") long slowRequestThresholdMs) {
+        this.accessLogEnabled = accessLogEnabled;
+        this.slowRequestThresholdMs = slowRequestThresholdMs;
+    }
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        if (!accessLogEnabled && !log.isDebugEnabled() && slowRequestThresholdMs <= 0) {
+            return chain.filter(exchange);
+        }
         long started = System.currentTimeMillis();
-        return chain.filter(exchange).doFinally(signal -> log.info("gateway_request method={} path={} userId={} durationMs={} status={}",
-                exchange.getRequest().getMethod(),
-                exchange.getRequest().getPath().value(),
-                exchange.getRequest().getHeaders().getFirst("X-User-Id"),
-                System.currentTimeMillis() - started,
-                exchange.getResponse().getStatusCode()));
+        return chain.filter(exchange).doFinally(signal -> {
+            long durationMs = System.currentTimeMillis() - started;
+            if (accessLogEnabled || durationMs >= slowRequestThresholdMs) {
+                log.info("gateway_request method={} path={} userId={} durationMs={} status={}",
+                        exchange.getRequest().getMethod(),
+                        exchange.getRequest().getPath().value(),
+                        exchange.getRequest().getHeaders().getFirst("X-User-Id"),
+                        durationMs,
+                        exchange.getResponse().getStatusCode());
+            } else {
+                log.debug("gateway_request method={} path={} userId={} durationMs={} status={}",
+                        exchange.getRequest().getMethod(),
+                        exchange.getRequest().getPath().value(),
+                        exchange.getRequest().getHeaders().getFirst("X-User-Id"),
+                        durationMs,
+                        exchange.getResponse().getStatusCode());
+            }
+        });
     }
 
     @Override

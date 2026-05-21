@@ -117,6 +117,16 @@ public class AuthController {
         return authService.jwks();
     }
 
+    @GetMapping("/db-ping")
+    public Map<String, Object> dbPing() {
+        return authService.dbPing();
+    }
+
+    @GetMapping("/db-stats")
+    public Map<String, Object> dbStats() {
+        return authService.dbStats();
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/ping")
     public ActionResponseDto adminPing() {

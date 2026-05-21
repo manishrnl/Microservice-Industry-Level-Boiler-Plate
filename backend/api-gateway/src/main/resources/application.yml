@@ -75,9 +75,14 @@ spring:
 
 eureka:
   client:
-    enabled: ${EUREKA_CLIENT_ENABLED:false}
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    register-with-eureka: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:true}
+    fetch-registry: ${EUREKA_CLIENT_FETCH_REGISTRY:true}
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    instance-id: ${spring.application.name}:${server.port}
 
 management:
   endpoints:
@@ -97,3 +102,12 @@ management:
 gateway:
   jwt:
     jwks-url: ${AUTH_JWKS_URL:http://auth-service:8081/api/v1/auth/.well-known/jwks.json}
+  rate-limit:
+    enabled: ${GATEWAY_RATE_LIMIT_ENABLED:true}
+    include-probe-paths: ${GATEWAY_RATE_LIMIT_INCLUDE_PROBE_PATHS:false}
+    fail-open: ${GATEWAY_RATE_LIMIT_FAIL_OPEN:true}
+    anonymous-requests-per-minute: ${GATEWAY_RATE_LIMIT_ANON_PER_MINUTE:100}
+    authenticated-requests-per-minute: ${GATEWAY_RATE_LIMIT_AUTH_PER_MINUTE:1000}
+  request-logging:
+    enabled: ${GATEWAY_REQUEST_LOGGING_ENABLED:false}
+    slow-threshold-ms: ${GATEWAY_SLOW_REQUEST_LOG_MS:1000}

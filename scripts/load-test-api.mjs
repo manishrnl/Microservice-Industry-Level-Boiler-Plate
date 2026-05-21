@@ -147,6 +147,7 @@ const makeStats = () => ({
     latencies: [],
     statusCounts: new Map(),
     errorCounts: new Map(),
+    errorSamples: [],
     perSecond: new Map()
 });
 
@@ -162,6 +163,41 @@ const bumpSecond = (stats, key) => {
     stats.perSecond.get(second)[key] += 1;
 };
 
+const errorKey = (error) => error?.cause?.code
+    || error?.code
+    || error?.cause?.name
+    || error?.name
+    || "network_error";
+
+const errorSummary = (error) => {
+    const parts = [];
+    if (error?.name) {
+        parts.push(error.name);
+    }
+    if (error?.message) {
+        parts.push(error.message);
+    }
+    if (error?.cause?.code) {
+        parts.push(error.cause.code);
+    }
+    if (error?.cause?.message && error.cause.message !== error.message) {
+        parts.push(error.cause.message);
+    }
+    return parts.join(": ") || "network_error";
+};
+
+const requestInit = (options, headers, signal) => {
+    const init = {
+        method: options.method,
+        headers,
+        signal
+    };
+    if (options.body !== undefined && options.method !== "GET" && options.method !== "HEAD") {
+        init.body = options.body;
+    }
+    return init;
+};
+
 const requestOnce = async (options, headers, stats) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
@@ -170,12 +206,7 @@ const requestOnce = async (options, headers, stats) => {
     bumpSecond(stats, "sent");
 
     try {
-        const response = await fetch(options.url, {
-            method: options.method,
-            headers,
-            body: options.body,
-            signal: controller.signal
-        });
+        const response = await fetch(options.url, requestInit(options, headers, controller.signal));
         const body = await response.arrayBuffer();
         const elapsedMs = performance.now() - startedAt;
         const passed = response.status >= options.successMin && response.status <= options.successMax;
@@ -202,7 +233,10 @@ const requestOnce = async (options, headers, stats) => {
             bumpMap(stats.errorCounts, "timeout");
         } else {
             stats.networkErrors += 1;
-            bumpMap(stats.errorCounts, error?.code || error?.name || "network_error");
+            bumpMap(stats.errorCounts, errorKey(error));
+            if (stats.errorSamples.length < 5) {
+                stats.errorSamples.push(errorSummary(error));
+            }
         }
         bumpSecond(stats, "failed");
     } finally {
@@ -218,14 +252,16 @@ const worker = async (options, headers, stats, endAt) => {
 
 const runTargetRps = async (options, headers, stats, endAt) => {
     const intervalMs = options.tickMs;
-    const requestsPerTick = options.rps / (1000 / intervalMs);
     let carry = 0;
     let inFlight = 0;
     const running = new Set();
+    let lastTickAt = performance.now();
 
     while (performance.now() < endAt) {
         const tickStartedAt = performance.now();
-        carry += requestsPerTick;
+        const elapsedSinceLastTickMs = Math.max(0, tickStartedAt - lastTickAt);
+        lastTickAt = tickStartedAt;
+        carry += options.rps * (elapsedSinceLastTickMs / 1000);
         const toSend = Math.floor(carry);
         carry -= toSend;
 
@@ -310,6 +346,50 @@ const printHealthVerdict = (stats, p95Latency, totalSeconds) => {
     console.log(`Reason: ${formatNumber(hitRatio)}% hit ratio, ${formatNumber(passedRps)} passed req/sec, p95 latency ${formatNumber(p95Latency)}ms.`);
 };
 
+const printDiagnostics = (options, stats, totalSeconds) => {
+    const status401 = stats.statusCounts.get(401) || 0;
+    const status403 = stats.statusCounts.get(403) || 0;
+    const status429 = stats.statusCounts.get(429) || 0;
+    const status5xx = [...stats.statusCounts.entries()]
+        .filter(([status]) => Number(status) >= 500)
+        .reduce((sum, [, count]) => sum + count, 0);
+    const actualSentRps = stats.sent / totalSeconds;
+    const actualPassedRps = stats.passed / totalSeconds;
+
+    console.log("\nResult interpretation");
+    if (status401 > 0 || status403 > 0) {
+        console.log("- Auth failure detected. 401/403 responses are fast failures and usually mean the endpoint was protected or the token was missing/invalid. This does not measure DB efficiency.");
+    }
+    if (status429 > 0) {
+        console.log("- Rate limit detected. 429 responses mean the gateway/app intentionally throttled traffic.");
+    }
+    if (status5xx > 0) {
+        console.log("- Server errors detected. Check service logs, DB connection pool, Redis, and container CPU/memory.");
+    }
+    if (stats.timeoutErrors > 0 && stats.received === 0) {
+        console.log("- All requests timed out before any HTTP response arrived. The target RPS/concurrency is far above what this local setup can handle.");
+    } else if (stats.timeoutErrors > 0) {
+        console.log("- Some requests timed out. Reduce --rps or --concurrency until timeoutErrors becomes 0.");
+    }
+    if (stats.networkErrors > 0 && stats.received === 0) {
+        console.log("- No HTTP responses arrived. This is usually a connectivity/readiness problem: the target port is closed, the container is restarting, or localhost resolved to an address the service is not listening on.");
+        if (new URL(options.url).hostname === "localhost") {
+            console.log("- Retry the same command with 127.0.0.1 instead of localhost to rule out an IPv4/IPv6 localhost mismatch.");
+        }
+    } else if (stats.networkErrors > 0) {
+        console.log("- Some requests failed before an HTTP response arrived. Check the sample network errors above and the service/container logs.");
+    }
+    if (stats.droppedByConcurrency > 0) {
+        console.log("- droppedByConcurrency is above 0. The requested --rps was higher than the configured concurrency could sustain at the observed latency.");
+    }
+    if (options.rps > 0 && actualSentRps < options.rps * 0.8) {
+        console.log(`- The generator only sent ${formatNumber(actualSentRps)} req/sec against a target of ${options.rps}. Treat the observed passed rate, not the target RPS, as the real result.`);
+    }
+    if (stats.passed > 0) {
+        console.log(`- Observed smooth throughput in this run: about ${formatNumber(actualPassedRps)} passed req/sec.`);
+    }
+};
+
 const printSummary = (options, stats, totalMs) => {
     const sortedLatencies = [...stats.latencies].sort((a, b) => a - b);
     const totalSeconds = totalMs / 1000;
@@ -365,6 +445,11 @@ const printSummary = (options, stats, totalMs) => {
         console.table(Object.fromEntries(stats.errorCounts.entries()));
     }
 
+    if (stats.errorSamples.length > 0) {
+        console.log("\nSample network errors");
+        console.table(stats.errorSamples);
+    }
+
     printBarChart("Pass / fail chart", [
         ["passed", stats.passed],
         ["failed", stats.failed],
@@ -376,6 +461,7 @@ const printSummary = (options, stats, totalMs) => {
         .sort(([left], [right]) => left - right)
         .map(([second, row]) => [new Date(second * 1000).toLocaleTimeString(), row.sent]));
     printHealthVerdict(stats, p95Latency, totalSeconds);
+    printDiagnostics(options, stats, totalSeconds);
 };
 
 const main = async () => {

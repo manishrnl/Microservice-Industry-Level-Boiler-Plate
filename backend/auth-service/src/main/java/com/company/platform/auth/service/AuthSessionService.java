@@ -14,6 +14,7 @@ import java.util.List;
 @Service
 public class AuthSessionService {
     private static final int MAX_SESSIONS_PER_USER = 5;
+    private static final int TOUCH_THROTTLE_SECONDS = 60;
 
     private final UserSessionRepository sessions;
     private final SessionInfoMapper mapper;
@@ -54,9 +55,16 @@ public class AuthSessionService {
         }
     }
 
+    public void touchIfStale(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return;
+        }
+        sessions.findBySessionIdAndExpiredFalse(sessionId).ifPresent(this::touchIfStale);
+    }
+
     public List<SessionInfoDto> list(User user, String currentSessionId) {
-        requireActive(currentSessionId);
-        touch(currentSessionId);
+        UserSession currentSession = requireActive(currentSessionId);
+        touchIfStale(currentSession);
         return sessions.findByUserAndExpiredFalseOrderByLastActiveDescCreatedAtDesc(user).stream()
                 .map(session -> mapper.toDto(session, currentSessionId))
                 .toList();
@@ -68,6 +76,10 @@ public class AuthSessionService {
 
     public void revokeAll(User user) {
         sessions.deleteAllByUser(user);
+    }
+
+    public long countSessions() {
+        return sessions.count();
     }
 
     private void deleteOldestOverLimit(User user) {
@@ -91,6 +103,13 @@ public class AuthSessionService {
         }
         if (ipAddress != null) {
             sessions.deleteActiveByUserAndIpAddress(user, ipAddress);
+        }
+    }
+
+    private void touchIfStale(UserSession session) {
+        LocalDateTime lastActive = session.getLastActive();
+        if (lastActive == null || lastActive.isBefore(LocalDateTime.now().minusSeconds(TOUCH_THROTTLE_SECONDS))) {
+            sessions.touchSessionBySessionId(session.getSessionId());
         }
     }
 

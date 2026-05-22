@@ -85,3 +85,32 @@ canvas {
 .dark .app-shell .shadow-lg {
     box-shadow: 0 18px 45px rgb(0 0 0 / 0.22);
 }
+
+.app-glass-toast {
+    max-width: min(420px, calc(100vw - 2rem)) !important;
+    border: 1px solid rgb(255 255 255 / 0.45) !important;
+    border-radius: 8px !important;
+    background: rgb(15 23 42 / 0.08) !important;
+    color: #0f172a !important;
+    box-shadow: 0 18px 60px rgb(15 23 42 / 0.16) !important;
+    backdrop-filter: blur(24px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+    font-weight: 650 !important;
+}
+
+.app-glass-toast-success {
+    border-color: rgb(45 212 191 / 0.4) !important;
+    background: rgb(20 184 166 / 0.10) !important;
+}
+
+.app-glass-toast-error {
+    border-color: rgb(251 113 133 / 0.42) !important;
+    background: rgb(244 63 94 / 0.10) !important;
+}
+
+.dark .app-glass-toast {
+    border-color: rgb(255 255 255 / 0.12) !important;
+    background: rgb(255 255 255 / 0.08) !important;
+    color: #f8fafc !important;
+    box-shadow: 0 18px 60px rgb(0 0 0 / 0.32) !important;
+}

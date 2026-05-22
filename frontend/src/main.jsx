@@ -13,7 +13,21 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <QueryClientProvider client={queryClient}>
             <BrowserRouter future={{v7_relativeSplatPath: true, v7_startTransition: true}}>
                 <App/>
-                <Toaster position="top-right"/>
+                <Toaster
+                    position="top-center"
+                    gutter={10}
+                    toastOptions={{
+                        className: "app-glass-toast",
+                        duration: 4200,
+                        success: {
+                            className: "app-glass-toast app-glass-toast-success"
+                        },
+                        error: {
+                            className: "app-glass-toast app-glass-toast-error",
+                            duration: 5600
+                        }
+                    }}
+                />
             </BrowserRouter>
         </QueryClientProvider>
     </React.StrictMode>

@@ -1,9 +1,10 @@
-import {ArrowRight, Github, Linkedin, LoaderCircle} from "lucide-react";
+import {ArrowRight, Github, Linkedin} from "lucide-react";
 import {useEffect, useRef, useState} from "react";
 import {endpoints} from "../../api/endpoints";
 import {env} from "../../config/env";
 import {useApiActivityStore} from "../../store/apiActivityStore";
-import {getClientLocalTime, getClientTimeZone} from "../../utils/clientContext";
+import {getPreferredTimeZone} from "../../store/preferencesStore";
+import {getClientLocalTime} from "../../utils/clientContext";
 
 const allProviders = [
     {
@@ -53,11 +54,11 @@ const OAuthButtons = ({mode}) => {
     const startOAuth = (provider) => {
         const label = allProviders.find((item) => item.provider === provider)?.label ?? provider;
         const authorizeUrl = new URL(endpoints.auth.oauthAuthorize(provider));
-        const timeZone = getClientTimeZone();
+        const timeZone = getPreferredTimeZone();
         if (timeZone) {
             authorizeUrl.searchParams.set("timeZone", timeZone);
         }
-        authorizeUrl.searchParams.set("localTime", getClientLocalTime());
+        authorizeUrl.searchParams.set("localTime", getClientLocalTime(timeZone));
         setLoadingProvider(provider);
         stopActivityRef.current?.();
         stopActivityRef.current = startActivity(`Opening ${label}`);
@@ -80,10 +81,7 @@ const OAuthButtons = ({mode}) => {
             <ProviderIcon icon={Icon} className={iconClassName}/>
             <span>{loadingProvider === provider ? `Connecting to ${label}` : `${action} with ${label}`}</span>
           </span>
-            {loadingProvider === provider ?
-                <LoaderCircle className="h-4 w-4 animate-spin opacity-90"/> : <ArrowRight
-                    className="h-4 w-4 opacity-55 transition group-hover:translate-x-0.5 group-hover:opacity-90"
-                />}
+            <ArrowRight className="h-4 w-4 opacity-55 transition group-hover:translate-x-0.5 group-hover:opacity-90"/>
         </button>)}
     </div>;
 };

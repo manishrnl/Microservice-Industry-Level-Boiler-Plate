@@ -7,6 +7,11 @@ const ProtectedRoute = ({requiredRole, requiredAnyRole}) => {
     const {isAuthenticated, isLoading} = useAuthStore();
     const {hasRole, hasAnyRole} = usePermission();
     if (isLoading) {
+        if (isAuthenticated) {
+            return <div className="pointer-events-none select-none opacity-90 blur-[1px]">
+                <Outlet/>
+            </div>;
+        }
         return <Loader variant="fullscreen" message="Checking session"/>;
     }
     if (!isAuthenticated) {

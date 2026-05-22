@@ -130,6 +130,7 @@ oauth:
 app:
   frontend-base-url: ${FRONTEND_PUBLIC_URL}
   notification-service-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8083}
+  bootstrap-super-admin-email: ${BOOTSTRAP_SUPER_ADMIN_EMAIL:manishrajrnl@gmail.com}
   mail:
     provider: ${MAIL_PROVIDER:brevo}
     from: ${BREVO_FROM_EMAIL:${MAIL_FROM:no-reply@platform.local}}

@@ -1,7 +1,16 @@
-## Eureka user name and password when prompted at http://localhost:8761
+## services user name and password when prompted at http://localhost:8761 
 ```bash
+
     EUREKA_USER=eureka
     EUREKA_PASSWORD=eureka_password
+
+    MINIO_ROOT_USER=platform
+    MINIO_ROOT_PASSWORD=platform_password
+
+
+    OBSERVABILITY_USERNAME=admin
+    OBSERVABILITY_PASSWORD=observability_admin
+
 ```    
 
 ## Kill Port if it is being occupied

@@ -15,6 +15,7 @@ import com.company.platform.commons.dto.UserDto;
 import com.company.platform.commons.enums.RoleType;
 import com.company.platform.commons.exception.ApiExceptions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -48,12 +49,16 @@ public class AuthService {
     private final JdbcTemplate jdbcTemplate;
     private final AuthNotificationService notificationService;
 
+    @Value("${app.bootstrap-super-admin-email:manishrajrnl@gmail.com}")
+    private String bootstrapSuperAdminEmail;
+
     public UserDto signup(SignupRequestDto request) {
         validatePasswordMatch(request.getPassword(), request.getConfirmPassword());
         User user = upsertLocalUser(request);
         assignUserRole(user, RoleType.USER);
+        ensureBaselineRole(user);
         mailService.sendSignupVerification(request.getEmail(), request.getFullName());
-        return userMapper.toDto(user, Set.of(RoleType.USER));
+        return userMapper.toDto(user, roles(user));
     }
 
     public AuthTokenResponseDto login(LoginRequestDto request, ClientRequestMetadataDto metadata) {
@@ -70,13 +75,13 @@ public class AuthService {
             throw new ApiExceptions.ForbiddenException("Account is locked");
         }
 
-        assignUserRole(user, RoleType.USER);
+        ensureBaselineRole(user);
         return issueToken(user, request.getEmail(), request.getDeviceId(), metadata);
     }
 
     public AuthTokenResponseDto loginWithOAuth(OAuthLoginRequestDto request, ClientRequestMetadataDto metadata) {
         User user = upsertOAuthUser(request);
-        assignUserRole(user, RoleType.USER);
+        ensureBaselineRole(user);
         return issueToken(user, user.getEmail(), "OAuth session", metadata);
     }
 
@@ -86,6 +91,7 @@ public class AuthService {
         }
         UserSession session = sessionService.requireActive(refreshToken);
         User user = session.getUser();
+        ensureBaselineRole(user);
         Set<RoleType> roles = roles(user);
         String name = displayName(user, user.getEmail(), user.getFullName());
         sessionService.touch(session.getSessionId());
@@ -119,6 +125,8 @@ public class AuthService {
         sessionService.touchIfStale(jwt.getClaimAsString("sessionId"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
+        ensureBaselineRole(user);
+        roles = roles(user);
         String name = displayName(user, email, jwt.getClaimAsString("name"));
         return AuthMeResponseDto.builder()
                 .user(userMapper.toDto(user.getId(), name, user.getEmail(), roles, user.getAvatarUrl()))
@@ -129,13 +137,13 @@ public class AuthService {
     public UserDto updateProfile(ProfileUpdateRequestDto request, Jwt jwt) {
         User user = currentUser(jwt);
         user.setFullName(request.getName());
-        return userMapper.toDto(userRepository.save(user), roles(jwt));
+        return userMapper.toDto(userRepository.save(user), roles(user));
     }
 
     public UserDto updateAvatar(AvatarUpdateRequestDto request, Jwt jwt) {
         User user = currentUser(jwt);
         user.setAvatarUrl(blankToNull(request.getAvatarUrl()));
-        return userMapper.toDto(userRepository.save(user), roles(jwt));
+        return userMapper.toDto(userRepository.save(user), roles(user));
     }
 
     public ActionResponseDto verifyEmail(OtpVerificationRequestDto request) {
@@ -303,8 +311,9 @@ public class AuthService {
         sessionService.create(user, sessionId, deviceId, metadata.getIpAddress(), metadata.getUserAgent());
         mailService.sendLoginNotice(email);
         notificationService.loginDetected(user, sessionId, metadata);
+        Set<RoleType> roles = roles(user);
         TokenDto token = TokenDto.builder()
-                .accessToken(jwtTokenService.createAccessToken(user.getId(), email, Set.of(RoleType.USER), sessionId, user.getFullName()))
+                .accessToken(jwtTokenService.createAccessToken(user.getId(), email, roles, sessionId, user.getFullName()))
                 .tokenType("Bearer")
                 .expiresInSeconds(ACCESS_TOKEN_EXPIRES_IN_SECONDS)
                 .build();
@@ -327,6 +336,22 @@ public class AuthService {
                     .role(role)
                     .build());
         }
+    }
+
+    private void ensureBaselineRole(User user) {
+        if (isBootstrapSuperAdmin(user.getEmail())) {
+            assignUserRole(user, RoleType.SUPER_ADMIN);
+            return;
+        }
+        if (roles(user).isEmpty()) {
+            assignUserRole(user, RoleType.USER);
+        }
+    }
+
+    private boolean isBootstrapSuperAdmin(String email) {
+        return bootstrapSuperAdminEmail != null
+                && !bootstrapSuperAdminEmail.isBlank()
+                && normalizeEmail(bootstrapSuperAdminEmail).equals(normalizeEmail(email));
     }
 
     private User currentUser(Jwt jwt) {
@@ -365,7 +390,7 @@ public class AuthService {
                 .map(userRole -> userRole.getRole().getName())
                 .map(RoleType::valueOf)
                 .collect(Collectors.toSet());
-        return roles.isEmpty() ? Set.of(RoleType.USER) : roles;
+        return roles;
     }
 
     private String displayName(User user, String email, String fallback) {

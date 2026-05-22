@@ -5,3 +5,8 @@ spring:
     url: ${USER_DATABASE_URL}
     username: ${USER_DATABASE_USERNAME}
     password: ${USER_DATABASE_PASSWORD}
+auth:
+  datasource:
+    url: ${AUTH_DATABASE_URL}
+    username: ${AUTH_DATABASE_USERNAME}
+    password: ${AUTH_DATABASE_PASSWORD}

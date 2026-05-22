@@ -1,13 +1,14 @@
 import {NavLink} from "react-router-dom";
 import {usePermission} from "../../hooks/usePermission";
 import {mainLinks} from "./Sidebar";
-import {History, Users} from "lucide-react";
+import {History, RadioTower, Users} from "lucide-react";
 
 const MobileNav = () => {
     const {isAdmin} = usePermission();
     const adminLinks = isAdmin() ? [
         {label: "Users", to: "/app/admin/users", Icon: Users},
-        {label: "Audit", to: "/app/admin/audit", Icon: History}
+        {label: "Audit", to: "/app/admin/audit", Icon: History},
+        {label: "Ops", to: "/app/admin/observability", Icon: RadioTower}
     ] : [];
     const links = [...mainLinks.slice(0, 5), ...adminLinks].slice(0, 7);
 

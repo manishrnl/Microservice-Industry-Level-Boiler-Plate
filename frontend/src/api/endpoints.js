@@ -51,6 +51,8 @@ const endpoints = {
         upload: `${api}/api/v1/files/upload`,
         metadata: (id) => `${api}/api/v1/files/${id}/metadata`,
         downloadUrl: (id) => `${api}/api/v1/files/${id}/download-url`,
+        download: (id) => `${api}/api/v1/files/${id}/download`,
+        view: (id) => `${api}/api/v1/files/${id}/download?disposition=inline`,
         mine: `${api}/api/v1/files/my-files`,
         delete: (id) => `${api}/api/v1/files/${id}`
     },

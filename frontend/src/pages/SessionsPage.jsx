@@ -5,13 +5,15 @@ import {apiClient} from "../api/axiosInstance";
 import {endpoints} from "../api/endpoints";
 import {PageWrapper} from "../components/common/PageWrapper";
 import {useAuthStore} from "../store/authStore";
+import {usePreferencesStore} from "../store/preferencesStore";
 import {asArray, unwrapApiData} from "../utils/responseUtils";
-import {relativeTime} from "../utils/dateUtils";
+import {formatDateTime, relativeTime} from "../utils/dateUtils";
 
 const SessionsPage = () => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const clearAuth = useAuthStore((state) => state.clearAuth);
+    const timezone = usePreferencesStore((state) => state.timezone);
     const currentHost = window.location.hostname || "current device";
     const currentBrowser = navigator.userAgent || "Current browser";
     const handleRevokeSuccess = (result) => {
@@ -85,8 +87,8 @@ const SessionsPage = () => {
                             <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300 md:grid-cols-2">
                                 <span className="inline-flex items-center gap-2"><Laptop className="h-3.5 w-3.5"/> {session.deviceType || "Device"} · {session.deviceId || "Browser session"}</span>
                                 <span className="inline-flex items-center gap-2"><Globe2 className="h-3.5 w-3.5"/> IP {session.ipAddress || "not reported"}</span>
-                                <span className="inline-flex items-center gap-2"><Clock className="h-3.5 w-3.5"/> Login {session.createdAt ? relativeTime(session.createdAt) : "not reported"}</span>
-                                <span className="inline-flex items-center gap-2"><Clock className="h-3.5 w-3.5"/> Last active {session.lastActive ? relativeTime(session.lastActive) : "not reported"}</span>
+                                <span className="inline-flex items-center gap-2"><Clock className="h-3.5 w-3.5"/> Login {session.createdAt ? `${formatDateTime(session.createdAt, timezone)} (${relativeTime(session.createdAt)})` : "not reported"}</span>
+                                <span className="inline-flex items-center gap-2"><Clock className="h-3.5 w-3.5"/> Last active {session.lastActive ? `${formatDateTime(session.lastActive, timezone)} (${relativeTime(session.lastActive)})` : "not reported"}</span>
                             </div>
                         </div>
                         <button

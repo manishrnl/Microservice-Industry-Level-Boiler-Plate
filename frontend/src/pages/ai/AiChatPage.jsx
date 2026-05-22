@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import {apiClient} from "../../api/axiosInstance";
 import {endpoints} from "../../api/endpoints";
 import {useAuthStore} from "../../store/authStore";
+import {usePreferencesStore} from "../../store/preferencesStore";
 import {asArray, extractAssistantContent, unwrapApiData} from "../../utils/responseUtils";
 
 const createClientId = () => {
@@ -84,6 +85,7 @@ const weatherFallback = async (content, location) => {
 
 const AiChatPage = () => {
     const currentUser = useAuthStore((state) => state.user);
+    const timezone = usePreferencesStore((state) => state.timezone);
     const [sessions, setSessions] = useState([{
         id: createClientId(),
         title: "New chat"
@@ -122,7 +124,7 @@ const AiChatPage = () => {
     });
     const userContext = () => ({
         locale: navigator.language,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone,
         localTime: new Date().toString()
     });
     const sessionsQuery = useQuery({

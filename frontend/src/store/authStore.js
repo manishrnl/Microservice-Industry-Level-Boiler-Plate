@@ -8,7 +8,7 @@ const ACCESS_TOKEN_KEY = "platform.accessToken";
 const AUTH_NOTICE_KEY = "platform.authNotice";
 const SESSION_EXPIRED_MESSAGE = "Session expired. Log in again.";
 const storedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-const initialToken = storedToken && !isTokenExpired(storedToken) ? storedToken : null;
+const initialToken = storedToken || null;
 const initialUser = initialToken ? authUserFromToken(initialToken) : null;
 const readAccessToken = (payload) => payload?.accessToken ?? payload?.data?.accessToken ?? null;
 const readUser = (payload) => payload?.user ?? payload?.data?.user ?? null;
@@ -61,7 +61,7 @@ const fetchCurrentUser = async (accessToken) => {
 const useAuthStore = create((set, get) => ({
     user: initialUser,
     accessToken: initialToken,
-    isAuthenticated: Boolean(initialToken),
+    isAuthenticated: Boolean(initialUser),
     isLoading: true,
     authNotice: "",
     setAuth: (user, accessToken) => {
@@ -102,11 +102,11 @@ const useAuthStore = create((set, get) => ({
     },
     hydrate: async () => {
         let token = localStorage.getItem(ACCESS_TOKEN_KEY);
-        const fallbackUser = token && !isTokenExpired(token) ? authUserFromToken(token) : null;
+        const fallbackUser = token ? authUserFromToken(token) : null;
         set({
             user: get().user ?? fallbackUser,
-            accessToken: token && !isTokenExpired(token) ? token : null,
-            isAuthenticated: Boolean(token && !isTokenExpired(token)),
+            accessToken: token,
+            isAuthenticated: Boolean(get().user ?? fallbackUser),
             isLoading: true
         });
         const stopActivity = useApiActivityStore.getState().startActivity("Checking session");

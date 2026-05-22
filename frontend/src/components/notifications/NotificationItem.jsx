@@ -1,7 +1,8 @@
 import {AlertTriangle, ChevronDown, CreditCard, ExternalLink, Settings, Shield} from "lucide-react";
 import {useState} from "react";
 import {Link} from "react-router-dom";
-import {relativeTime} from "../../utils/dateUtils";
+import {usePreferencesStore} from "../../store/preferencesStore";
+import {formatDateTime, relativeTime} from "../../utils/dateUtils";
 
 const iconMap = {
     AUTH: Shield,
@@ -11,6 +12,7 @@ const iconMap = {
 };
 const NotificationItem = ({notification, onRead, onOpen}) => {
     const [expanded, setExpanded] = useState(false);
+    const timezone = usePreferencesStore((state) => state.timezone);
     const Icon = iconMap[notification.category] ?? Settings;
     const open = () => {
         onRead(notification.id);
@@ -35,7 +37,7 @@ const NotificationItem = ({notification, onRead, onOpen}) => {
             <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-2">
                 <span><strong className="text-slate-900 dark:text-white">Category:</strong> {notification.category ?? "GENERAL"}</span>
                 <span><strong className="text-slate-900 dark:text-white">Status:</strong> {notification.read ? "Read" : "Unread"}</span>
-                <span className="sm:col-span-2"><strong className="text-slate-900 dark:text-white">Created:</strong> {notification.createdAt ? new Date(notification.createdAt).toLocaleString() : "Not reported"}</span>
+                <span className="sm:col-span-2"><strong className="text-slate-900 dark:text-white">Created:</strong> {formatDateTime(notification.createdAt, timezone)}</span>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-700 dark:text-slate-200">{notification.message || "No additional details were sent with this notification."}</p>
             {notification.actionUrl && <Link

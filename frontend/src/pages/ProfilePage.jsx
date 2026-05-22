@@ -1,19 +1,51 @@
 import {useMutation, useQuery} from "@tanstack/react-query";
-import {ImagePlus, Save, Trash2} from "lucide-react";
-import {useEffect, useState} from "react";
+import {Globe2, ImagePlus, Save, Trash2} from "lucide-react";
+import {useEffect, useMemo, useState} from "react";
 import {apiClient} from "../api/axiosInstance";
 import {endpoints} from "../api/endpoints";
 import {Avatar} from "../components/common/Avatar";
 import {PageWrapper} from "../components/common/PageWrapper";
 import {useAuthStore} from "../store/authStore";
+import {usePreferencesStore} from "../store/preferencesStore";
+import {getBrowserTimeZone} from "../utils/clientContext";
 import {readAvatarFile} from "../utils/imageUtils";
 import {unwrapApiData} from "../utils/responseUtils";
+
+const fallbackTimeZones = ["UTC", "Asia/Kolkata", "Asia/Calcutta", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Berlin", "Europe/Paris", "Asia/Dubai", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney"];
+const featuredTimeZones = [
+    "Asia/Kolkata",
+    "Asia/Calcutta",
+    "UTC",
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "Europe/London",
+    "Europe/Berlin",
+    "Asia/Dubai",
+    "Asia/Singapore",
+    "Asia/Tokyo",
+    "Australia/Sydney"
+];
+const supportedTimeZones = typeof Intl.supportedValuesOf === "function"
+    ? Intl.supportedValuesOf("timeZone")
+    : fallbackTimeZones;
 
 const ProfilePage = () => {
     const user = useAuthStore((state) => state.user);
     const updateUser = useAuthStore((state) => state.updateUser);
+    const preferredTimezone = usePreferencesStore((state) => state.timezone);
+    const setPreferredTimezone = usePreferencesStore((state) => state.setTimezone);
     const [name, setName] = useState(displayName(user?.name, user?.email));
-    const [timezone, setTimezone] = useState("UTC");
+    const [timezone, setTimezone] = useState(preferredTimezone || getBrowserTimeZone() || "UTC");
+    const browserTimezone = getBrowserTimeZone();
+    const timeZoneOptions = useMemo(() => Array.from(new Set([
+        browserTimezone,
+        preferredTimezone,
+        timezone,
+        ...featuredTimeZones,
+        ...supportedTimeZones
+    ].filter(Boolean))).sort((left, right) => left.localeCompare(right)), [browserTimezone, preferredTimezone, timezone]);
     const [avatarError, setAvatarError] = useState("");
     const profile = useQuery({
         queryKey: ["profile"],
@@ -35,8 +67,11 @@ const ProfilePage = () => {
         }
     });
     const savePreferences = useMutation({
-        mutationFn: async () => apiClient.put(endpoints.users.preferences, {timezone}),
-        onSuccess: () => preferences.refetch()
+        mutationFn: async (nextTimezone = timezone) => apiClient.put(endpoints.users.preferences, {timezone: nextTimezone}),
+        onSuccess: (_, savedTimezone) => {
+            setPreferredTimezone(savedTimezone || timezone);
+            preferences.refetch();
+        }
     });
     const activeProfile = profile.data ?? user;
     const handleAvatarChange = async (file) => {
@@ -62,8 +97,14 @@ const ProfilePage = () => {
     useEffect(() => {
         if (typeof preferences.data?.timezone === "string") {
             setTimezone(preferences.data.timezone);
+            setPreferredTimezone(preferences.data.timezone);
         }
-    }, [preferences.data]);
+    }, [preferences.data, setPreferredTimezone]);
+    const applyTimezone = (nextTimezone) => {
+        setTimezone(nextTimezone);
+        setPreferredTimezone(nextTimezone);
+        savePreferences.mutate(nextTimezone);
+    };
     return <PageWrapper title="Profile">
         <div className="grid gap-5 lg:grid-cols-2">
             <section className="rounded-md border border-slate-200 bg-white p-5">
@@ -118,14 +159,26 @@ const ProfilePage = () => {
                 <h2 className="text-sm font-semibold text-slate-950">Preferences</h2>
                 <label className="mt-4 block">
                     <span className="mb-1 block text-sm text-slate-600">Timezone</span>
-                    <input
-                        value={timezone}
-                        onChange={(event) => setTimezone(event.target.value)}
-                        className="h-11 w-full rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-slate-400"
-                    />
+                    <div className="relative">
+                        <Globe2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/>
+                        <select
+                            value={timezone}
+                            onChange={(event) => applyTimezone(event.target.value)}
+                            className="h-11 w-full rounded-md border border-slate-200 bg-white py-0 pl-9 pr-3 text-sm text-slate-900 outline-none focus:border-slate-400 dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                        >
+                            {timeZoneOptions.map((option) => <option key={option} value={option}>
+                                {option}{option === browserTimezone ? " - browser" : ""}
+                            </option>)}
+                        </select>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">
+                        Browser timezone: {browserTimezone || "Not detected"}
+                    </p>
+                    {savePreferences.isPending && <p className="mt-2 text-xs text-blue-600">Saving timezone...</p>}
+                    {savePreferences.isSuccess && !savePreferences.isPending && <p className="mt-2 text-xs text-emerald-600">Timezone is active across the app.</p>}
                 </label>
                 <button
-                    onClick={() => savePreferences.mutate()}
+                    onClick={() => savePreferences.mutate(timezone)}
                     disabled={savePreferences.isPending}
                     className="mt-4 inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-medium hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70"
                 >

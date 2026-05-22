@@ -14,8 +14,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <BrowserRouter future={{v7_relativeSplatPath: true, v7_startTransition: true}}>
                 <App/>
                 <Toaster
-                    position="top-center"
-                    gutter={10}
+                    position="bottom-right"
+                    gutter={8}
+                    containerStyle={{
+                        bottom: 16,
+                        right: 16
+                    }}
                     toastOptions={{
                         className: "app-glass-toast",
                         duration: 4200,

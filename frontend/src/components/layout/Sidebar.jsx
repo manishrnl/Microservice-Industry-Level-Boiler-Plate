@@ -5,6 +5,7 @@ import {
     FileText,
     Gauge,
     History,
+    RadioTower,
     ShieldCheck,
     UserRound,
     Users
@@ -25,7 +26,8 @@ const Sidebar = () => {
     const {isAdmin} = usePermission();
     const adminLinks = isAdmin() ? [
         {label: "Users", to: "/app/admin/users", Icon: Users},
-        {label: "Audit", to: "/app/admin/audit", Icon: History}
+        {label: "Audit", to: "/app/admin/audit", Icon: History},
+        {label: "Observability", to: "/app/admin/observability", Icon: RadioTower}
     ] : [];
     return <aside className="hidden w-64 border-r border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950 md:block">
         <nav className="space-y-1">

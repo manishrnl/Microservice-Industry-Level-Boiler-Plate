@@ -6,6 +6,7 @@ import {PublicLayout} from "./components/layout/PublicLayout";
 import {ProtectedRoute} from "./components/common/ProtectedRoute";
 import {Loader} from "./components/common/Loader";
 import {useAuthStore} from "./store/authStore";
+import {usePreferencesStore} from "./store/preferencesStore";
 import {HomePage} from "./pages/HomePage";
 import {LoginPage} from "./pages/auth/LoginPage";
 import {SignupPage} from "./pages/auth/SignupPage";
@@ -20,6 +21,7 @@ import {PaymentsPage} from "./pages/PaymentsPage";
 import {AiChatPage} from "./pages/ai/AiChatPage";
 import {UserManagementPage} from "./pages/admin/UserManagementPage";
 import {AuditLogPage} from "./pages/admin/AuditLogPage";
+import {ObservabilityPage} from "./pages/admin/ObservabilityPage";
 import {NotFoundPage} from "./pages/NotFoundPage";
 import {AccessDeniedPage} from "./pages/AccessDeniedPage";
 
@@ -37,9 +39,11 @@ const PublicHome = () => {
 
 const App = () => {
     const hydrate = useAuthStore((state) => state.hydrate);
+    const hydratePreferences = usePreferencesStore((state) => state.hydrate);
     useEffect(() => {
+        hydratePreferences();
         void hydrate();
-    }, [hydrate]);
+    }, [hydrate, hydratePreferences]);
     return <>
         <Routes>
             <Route element={<PublicHome/>}>
@@ -64,6 +68,7 @@ const App = () => {
                     />}>
                         <Route path="admin/users" element={<UserManagementPage/>}/>
                         <Route path="admin/audit" element={<AuditLogPage/>}/>
+                        <Route path="admin/observability" element={<ObservabilityPage/>}/>
                     </Route>
                 </Route>
             </Route>
@@ -76,6 +81,7 @@ const App = () => {
             <Route path="/ai" element={<Navigate to="/app/ai" replace/>}/>
             <Route path="/admin/users" element={<Navigate to="/app/admin/users" replace/>}/>
             <Route path="/admin/audit" element={<Navigate to="/app/admin/audit" replace/>}/>
+            <Route path="/admin/observability" element={<Navigate to="/app/admin/observability" replace/>}/>
             <Route path="/403" element={<AccessDeniedPage/>}/>
             <Route path="*" element={<NotFoundPage/>}/>
         </Routes>

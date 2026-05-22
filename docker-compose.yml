@@ -327,6 +327,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       FILE_PUBLIC_BASE_URL: ${FILE_PUBLIC_BASE_URL}
+      FILE_DOWNLOAD_BASE_URL: ${FILE_DOWNLOAD_BASE_URL}
     ports:
       - "${FILE_SERVICE_HOST_PORT:-8085}:8085"
     depends_on:
@@ -545,8 +546,6 @@ services:
   zipkin:
     image: openzipkin/zipkin:local-d17e856dcbba
     pull_policy: never
-    ports:
-      - "9411:9411"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:9411/health || exit 1"]
       interval: 15s
@@ -554,18 +553,56 @@ services:
       retries: 10
     networks: [backend-net]
 
+  zipkin-proxy:
+    image: httpd:2.4-alpine
+    env_file:
+      - .env
+    volumes:
+      - ./backend/infrastructure/observability/zipkin-proxy.conf:/usr/local/apache2/conf/extra/observability.conf:ro
+    command: >
+      sh -c "sed -i 's/^#LoadModule proxy_module/LoadModule proxy_module/' /usr/local/apache2/conf/httpd.conf &&
+             sed -i 's/^#LoadModule proxy_http_module/LoadModule proxy_http_module/' /usr/local/apache2/conf/httpd.conf &&
+             echo 'Include conf/extra/observability.conf' >> /usr/local/apache2/conf/httpd.conf &&
+             htpasswd -Bbc /usr/local/apache2/conf/.htpasswd \"$${OBSERVABILITY_USERNAME}\" \"$${OBSERVABILITY_PASSWORD}\" &&
+             httpd-foreground"
+    ports:
+      - "9411:80"
+    depends_on:
+      zipkin:
+        condition: service_healthy
+    networks: [backend-net]
+
   prometheus:
     image: prom/prometheus:local-e4254400b856
     pull_policy: never
     volumes:
       - ./backend/infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks: [backend-net]
+
+  prometheus-proxy:
+    image: httpd:2.4-alpine
+    env_file:
+      - .env
+    volumes:
+      - ./backend/infrastructure/observability/prometheus-proxy.conf:/usr/local/apache2/conf/extra/observability.conf:ro
+    command: >
+      sh -c "sed -i 's/^#LoadModule proxy_module/LoadModule proxy_module/' /usr/local/apache2/conf/httpd.conf &&
+             sed -i 's/^#LoadModule proxy_http_module/LoadModule proxy_http_module/' /usr/local/apache2/conf/httpd.conf &&
+             echo 'Include conf/extra/observability.conf' >> /usr/local/apache2/conf/httpd.conf &&
+             htpasswd -Bbc /usr/local/apache2/conf/.htpasswd \"$${OBSERVABILITY_USERNAME}\" \"$${OBSERVABILITY_PASSWORD}\" &&
+             httpd-foreground"
     ports:
-      - "9090:9090"
+      - "9090:80"
+    depends_on:
+      - prometheus
     networks: [backend-net]
 
   grafana:
     image: grafana/grafana:local-2d1f9ae67c17
     pull_policy: never
+    environment:
+      GF_SECURITY_ADMIN_USER: ${OBSERVABILITY_USERNAME}
+      GF_SECURITY_ADMIN_PASSWORD: ${OBSERVABILITY_PASSWORD}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./backend/infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro

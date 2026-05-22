@@ -10,6 +10,7 @@ ARG MODULE=api-gateway
 
 # Copy root pom
 COPY pom.xml .
+COPY README.md /tmp/README.md
 
 # Copy backend source
 COPY backend ./backend
@@ -34,6 +35,7 @@ RUN apt-get update &&     apt-get install -y --no-install-recommends curl &&    
 
 # Copy generated jar
 COPY --from=build /tmp/app.jar app.jar
+COPY --from=build /tmp/README.md README.md
 
 EXPOSE 10000
 

@@ -16,6 +16,11 @@ export default defineConfig(({mode}) => {
     const apiGatewayUrl = resolveApiGatewayUrl();
     const frontendPublicUrl = normalizeUrl(firstValue(process.env.VITE_FRONTEND_PUBLIC_URL, frontendEnv.VITE_FRONTEND_PUBLIC_URL, rootEnv.VITE_FRONTEND_PUBLIC_URL, process.env.FRONTEND_PUBLIC_URL, rootEnv.FRONTEND_PUBLIC_URL)) ?? defaultFrontendPublicUrl;
     const appEnv = firstValue(process.env.VITE_APP_ENV, frontendEnv.VITE_APP_ENV, rootEnv.VITE_APP_ENV) ?? mode;
+    const prometheusUrl = normalizeUrl(firstValue(process.env.VITE_PROMETHEUS_URL, frontendEnv.VITE_PROMETHEUS_URL, rootEnv.VITE_PROMETHEUS_URL, process.env.PROMETHEUS_URL, rootEnv.PROMETHEUS_URL));
+    const grafanaUrl = normalizeUrl(firstValue(process.env.VITE_GRAFANA_URL, frontendEnv.VITE_GRAFANA_URL, rootEnv.VITE_GRAFANA_URL, process.env.GRAFANA_URL, rootEnv.GRAFANA_URL));
+    const zipkinUrl = normalizeUrl(firstValue(process.env.VITE_ZIPKIN_URL, frontendEnv.VITE_ZIPKIN_URL, rootEnv.VITE_ZIPKIN_URL, process.env.ZIPKIN_URL, rootEnv.ZIPKIN_URL));
+    const discoveryUrl = normalizeUrl(firstValue(process.env.VITE_DISCOVERY_URL, frontendEnv.VITE_DISCOVERY_URL, rootEnv.VITE_DISCOVERY_URL));
+    const configServerUrl = normalizeUrl(firstValue(process.env.VITE_CONFIG_SERVER_URL, frontendEnv.VITE_CONFIG_SERVER_URL, rootEnv.VITE_CONFIG_SERVER_URL));
     const virtualAdapterPattern = /(virtual|vethernet|wsl|docker|hyper-v|vmware|virtualbox|loopback|bluetooth)/i;
     const hiddenNetworkHosts = new Set(Object.entries(networkInterfaces())
         .filter(([name]) => virtualAdapterPattern.test(name))
@@ -41,7 +46,12 @@ export default defineConfig(({mode}) => {
         define: {
             "import.meta.env.VITE_API_GATEWAY_URL": JSON.stringify(apiGatewayUrl),
             "import.meta.env.VITE_FRONTEND_PUBLIC_URL": JSON.stringify(frontendPublicUrl),
-            "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv)
+            "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv),
+            "import.meta.env.VITE_PROMETHEUS_URL": JSON.stringify(prometheusUrl),
+            "import.meta.env.VITE_GRAFANA_URL": JSON.stringify(grafanaUrl),
+            "import.meta.env.VITE_ZIPKIN_URL": JSON.stringify(zipkinUrl),
+            "import.meta.env.VITE_DISCOVERY_URL": JSON.stringify(discoveryUrl),
+            "import.meta.env.VITE_CONFIG_SERVER_URL": JSON.stringify(configServerUrl)
         },
         server: {
             port: 5173,

@@ -4,6 +4,8 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {apiClient} from "../api/axiosInstance";
 import {endpoints} from "../api/endpoints";
 import {PageWrapper} from "../components/common/PageWrapper";
+import {usePreferencesStore} from "../store/preferencesStore";
+import {formatMonth} from "../utils/dateUtils";
 import {asArray, unwrapApiData} from "../utils/responseUtils";
 
 const PaymentsPage = () => {
@@ -11,6 +13,7 @@ const PaymentsPage = () => {
     const [amount, setAmount] = useState("49");
     const [currency, setCurrency] = useState("USD");
     const [payment, setPayment] = useState(null);
+    const timezone = usePreferencesStore((state) => state.timezone);
     const handledReturnRef = useRef(null);
     const paymentsQuery = useQuery({
         queryKey: ["payments"],
@@ -63,7 +66,7 @@ const PaymentsPage = () => {
     const payments = paymentsQuery.data ?? [];
     const groupedPayments = useMemo(() => {
         return payments.reduce((groups, item) => {
-            const label = monthLabel(item.createdAt);
+            const label = formatMonth(item.createdAt, timezone);
             const existing = groups.find((group) => group.label === label);
             if (existing) {
                 existing.items.push(item);
@@ -72,7 +75,7 @@ const PaymentsPage = () => {
             }
             return groups;
         }, []);
-    }, [payments]);
+    }, [payments, timezone]);
     const latestPayment = payment ?? payments[0] ?? null;
     return <PageWrapper title="Payments">
         <div className="grid gap-5 lg:grid-cols-[420px_1fr]">
@@ -179,16 +182,6 @@ const PaymentsPage = () => {
                 </div>)}
         </section>
     </PageWrapper>;
-};
-const monthLabel = (value) => {
-    if (!value) {
-        return "Unknown date";
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return "Unknown date";
-    }
-    return new Intl.DateTimeFormat("en", {month: "long", year: "numeric"}).format(date);
 };
 export {
     PaymentsPage

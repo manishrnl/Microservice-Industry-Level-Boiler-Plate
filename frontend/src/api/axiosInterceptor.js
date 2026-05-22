@@ -71,6 +71,21 @@ const apiActivityFor = (config) => {
     if (path === "/api/v1/auth/me/avatar") {
         return activity("Saving profile avatar", "Updating the avatar URL stored with your account.");
     }
+    if (path === "/api/v1/auth/me/settings" && method === "GET") {
+        return activity("Loading account settings", "Reading identity, KYC, contact, and account status details.");
+    }
+    if (path === "/api/v1/auth/me/settings" && method === "PUT") {
+        return activity("Saving account settings", "Updating profile, Aadhaar, PAN, contact, and address records.");
+    }
+    if (path === "/api/v1/auth/me/password") {
+        return activity("Changing password", "Verifying the current password and saving the new secure hash.");
+    }
+    if (path === "/api/v1/auth/me/suspend") {
+        return activity("Suspending account", "Locking the account and revoking active sessions.");
+    }
+    if (path === "/api/v1/auth/me" && method === "DELETE") {
+        return activity("Deleting account", "Locking the account, marking it deleted, and revoking sessions.");
+    }
     if (path === "/api/v1/auth/sessions" && method === "GET") {
         return activity("Loading active sessions", "Reading browser, device, IP, and login records from the auth database.");
     }
@@ -152,7 +167,12 @@ const apiActivityFor = (config) => {
         return activity("Creating AI chat", "Starting a new assistant conversation record.");
     }
     if (path.startsWith("/api/v1/ai/sessions/") && path.endsWith("/messages")) {
-        return activity("Loading chat messages", "Reading saved messages for this assistant conversation.");
+        return method === "GET"
+            ? activity("Loading chat messages", "Reading saved messages for this assistant conversation.")
+            : activity("Saving chat messages", "Writing the latest user and assistant messages to the AI database.");
+    }
+    if (path.startsWith("/api/v1/ai/sessions/") && method === "PATCH") {
+        return activity("Renaming AI chat", "Updating the saved conversation title.");
     }
     if (path.startsWith("/api/v1/ai/sessions/") && method === "DELETE") {
         return activity("Deleting AI chat", "Removing the selected conversation and its saved messages.");

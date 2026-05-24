@@ -9,3 +9,7 @@ datasources:
     type: zipkin
     access: proxy
     url: ${ZIPKIN_URL}
+  - name: Loki
+    type: loki
+    access: proxy
+    url: ${LOKI_URL}

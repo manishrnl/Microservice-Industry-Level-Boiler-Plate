@@ -633,18 +633,50 @@ services:
       - prometheus
     networks: [backend-net]
 
+  loki:
+    image: grafana/loki:3.5.1
+    pull_policy: missing
+    command: -config.file=/etc/loki/local-config.yml
+    volumes:
+      - ./backend/infrastructure/loki/loki-config.yml:/etc/loki/local-config.yml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    networks: [backend-net]
+
+  promtail:
+    image: grafana/promtail:3.5.1
+    pull_policy: missing
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./backend/infrastructure/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail-positions:/tmp/promtail
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks: [backend-net]
+
   grafana:
     image: grafana/grafana:13.0.1
     pull_policy: missing
     environment:
       GF_SECURITY_ADMIN_USER: ${OBSERVABILITY_USERNAME}
       GF_SECURITY_ADMIN_PASSWORD: ${OBSERVABILITY_PASSWORD}
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-http://prometheus:9090}
+      ZIPKIN_URL: ${ZIPKIN_URL:-http://zipkin:9411}
+      LOKI_URL: ${LOKI_URL:-http://loki:3100}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./backend/infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./backend/infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
       - "3000:3000"
+    depends_on:
+      - prometheus
+      - zipkin
+      - loki
     networks: [backend-net]
 
 networks:
@@ -658,4 +690,6 @@ volumes:
   redis-data:
   minio-data:
   grafana-data:
+  loki-data:
+  promtail-positions:
   frontend-node-modules:

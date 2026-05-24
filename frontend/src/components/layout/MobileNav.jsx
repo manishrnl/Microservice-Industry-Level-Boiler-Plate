@@ -11,7 +11,7 @@ const MobileNav = () => {
         {label: "Ops", to: "/app/admin/observability", Icon: RadioTower}
     ] : [];
     const superAdminLinks = isSuperAdmin() ? [
-        {label: "Logs", to: "/app/super-admin/observability", Icon: RadioTower}
+        {label: "Logs", to: "/app/super-admin/logs", Icon: RadioTower}
     ] : [];
     const links = isAdmin()
         ? [...mainLinks.slice(0, 3), ...adminLinks, ...superAdminLinks].slice(0, 7)

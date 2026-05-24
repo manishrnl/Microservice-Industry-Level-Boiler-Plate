@@ -23,13 +23,21 @@ const SignupPage = () => {
     const submit = handleSubmit(async (values) => {
         setActivationSent(false);
         setSignupError("");
+        const payload = {
+            ...values,
+            email: values.email?.trim().toLowerCase(),
+            username: values.username?.trim()
+        };
+        if (!payload.username) {
+            delete payload.username;
+        }
         try {
-            await apiClient.post(endpoints.auth.signup, values);
+            await apiClient.post(endpoints.auth.signup, payload);
             setActivationSent(true);
             window.setTimeout(() => navigate("/login", {
                 replace: true,
                 state: {
-                    email: values.email,
+                    email: payload.email,
                     notice: "Activation OTP sent to your email.",
                     verificationRequired: true
                 }
@@ -37,16 +45,27 @@ const SignupPage = () => {
         } catch (error) {
             const status = error?.response?.status;
             const detail = error?.response?.data?.detail ?? error?.response?.data?.message ?? "";
-            const isDuplicateEmail = status === 409 || String(detail).toLowerCase().includes("already registered");
+            const lowerDetail = String(detail).toLowerCase();
+            const isDuplicateEmail = status === 409 && lowerDetail.includes("email");
+            const isDuplicateUsername = status === 409 && lowerDetail.includes("username");
+            if (isDuplicateUsername) {
+                setSignupError("Username already registered. Choose another username or leave it blank.");
+                setValue("username", "", {shouldDirty: true, shouldValidate: true});
+                return;
+            }
             if (isDuplicateEmail) {
                 setSignupError("Email already registered. Redirecting to login...");
                 window.setTimeout(() => navigate("/login", {
                     replace: true,
                     state: {
-                        email: values.email,
+                        email: payload.email,
                         notice: "Email already registered. Sign in instead."
                     }
                 }), 1000);
+                return;
+            }
+            if (status === 409) {
+                setSignupError(detail || "Submitted email or username conflicts with an existing account.");
                 return;
             }
             setSignupError(detail || "Could not create account. Please try again.");
@@ -113,7 +132,7 @@ const SignupPage = () => {
             <input
                 className={inputClassName}
                 placeholder="Choose a username"
-                autoComplete="username"
+                autoComplete="off"
                 {...register("username")}
             />
           </span>

@@ -22,6 +22,7 @@ import {AiChatPage} from "./pages/ai/AiChatPage";
 import {UserManagementPage} from "./pages/admin/UserManagementPage";
 import {AuditLogPage} from "./pages/admin/AuditLogPage";
 import {ObservabilityPage} from "./pages/admin/ObservabilityPage";
+import {LokiLogsPage} from "./pages/admin/LokiLogsPage";
 import {NotFoundPage} from "./pages/NotFoundPage";
 import {AccessDeniedPage} from "./pages/AccessDeniedPage";
 
@@ -41,7 +42,9 @@ const pageTitles = [
     {path: "/app/admin/users", title: "Admin Users"},
     {path: "/app/admin/audit", title: "Admin Audit"},
     {path: "/app/admin/observability", title: "Observability"},
+    {path: "/app/admin/logs", title: "Loki Logs"},
     {path: "/app/super-admin/observability", title: "Super Admin Logs"},
+    {path: "/app/super-admin/logs", title: "System Logs"},
     {path: "/403", title: "Access Denied"}
 ];
 
@@ -94,9 +97,11 @@ const App = () => {
                         <Route path="admin/users" element={<UserManagementPage/>}/>
                         <Route path="admin/audit" element={<AuditLogPage/>}/>
                         <Route path="admin/observability" element={<ObservabilityPage/>}/>
+                        <Route path="admin/logs" element={<LokiLogsPage/>}/>
                     </Route>
                     <Route element={<ProtectedRoute requiredRole="SUPER_ADMIN"/>}>
                         <Route path="super-admin/observability" element={<ObservabilityPage/>}/>
+                        <Route path="super-admin/logs" element={<LokiLogsPage/>}/>
                     </Route>
                 </Route>
             </Route>
@@ -110,8 +115,9 @@ const App = () => {
             <Route path="/admin/users" element={<Navigate to="/app/admin/users" replace/>}/>
             <Route path="/admin/audit" element={<Navigate to="/app/admin/audit" replace/>}/>
             <Route path="/admin/observability" element={<Navigate to="/app/admin/observability" replace/>}/>
+            <Route path="/admin/logs" element={<Navigate to="/app/admin/logs" replace/>}/>
             <Route path="/super-admin/observability" element={<Navigate to="/app/super-admin/observability" replace/>}/>
-            <Route path="/super-admin/logs" element={<Navigate to="/app/super-admin/observability" replace/>}/>
+            <Route path="/super-admin/logs" element={<Navigate to="/app/super-admin/logs" replace/>}/>
             <Route path="/403" element={<AccessDeniedPage/>}/>
             <Route path="*" element={<NotFoundPage/>}/>
         </Routes>

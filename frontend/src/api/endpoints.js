@@ -71,7 +71,10 @@ const endpoints = {
         export: `${api}/api/v1/audit/export`
     },
     observability: {
-        logs: `${api}/api/v1/observability/logs`
+        logs: `${api}/api/v1/observability/logs`,
+        lokiLabels: `${api}/api/v1/observability/loki/labels`,
+        lokiServices: `${api}/api/v1/observability/loki/services`,
+        lokiQueryRange: `${api}/api/v1/observability/loki/query-range`
     }
 };
 export {

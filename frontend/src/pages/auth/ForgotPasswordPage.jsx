@@ -19,7 +19,7 @@ const ForgotPasswordPage = () => {
         setError("");
         setNotice("");
         try {
-            const email = values.email?.trim();
+            const email = values.email?.trim().toLowerCase();
             if (!otpSent) {
                 await apiClient.post(endpoints.auth.forgotPassword, {email});
                 setOtpSent(true);
@@ -31,6 +31,10 @@ const ForgotPasswordPage = () => {
             window.setTimeout(() => navigate("/login", {replace: true}), 1600);
         } catch (requestError) {
             const detail = requestError?.response?.data?.detail ?? requestError?.response?.data?.message;
+            if (requestError?.response?.status === 404) {
+                setError("No account exists for this email. Check the address or create a new account.");
+                return;
+            }
             setError(detail || "Could not reset password. Please try again.");
         }
     });

@@ -31,7 +31,7 @@ const Sidebar = () => {
         {label: "Observability", to: "/app/admin/observability", Icon: RadioTower}
     ] : [];
     const superAdminLinks = isSuperAdmin() ? [
-        {label: "System Logs", to: "/app/super-admin/observability", Icon: RadioTower}
+        {label: "System Logs", to: "/app/super-admin/logs", Icon: RadioTower}
     ] : [];
     return <aside className="hidden w-64 border-r border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950 md:block">
         <BrandMark className="mb-5 px-1"/>

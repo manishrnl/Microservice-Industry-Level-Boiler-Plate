@@ -1,32 +1,36 @@
 package com.company.platform.user.service;
 
+import com.company.platform.user.auth.repository.AuthRoleRepository;
+import com.company.platform.user.auth.repository.AuthUserRepository;
+import com.company.platform.user.entity.AuthRole;
+import com.company.platform.user.entity.AuthUser;
 import com.company.platform.user.model.UserProfile;
 import com.company.platform.user.repository.UserProfileRepository;
 import com.company.platform.commons.dto.UserDto;
 import com.company.platform.commons.enums.RoleType;
 import com.company.platform.commons.exception.ApiExceptions;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class AuthUserAdminService {
-    private final String url;
-    private final String username;
-    private final String password;
+    private static final int AUTH_ACCOUNT_FETCH_LIMIT = 1000;
+
+    private final AuthUserRepository authUsers;
+    private final AuthRoleRepository authRoles;
     private final UserProfileRepository profiles;
 
-    public AuthUserAdminService(@Value("${auth.datasource.url:${AUTH_DATABASE_URL:}}") String url,
-                         @Value("${auth.datasource.username:${AUTH_DATABASE_USERNAME:}}") String username,
-                         @Value("${auth.datasource.password:${AUTH_DATABASE_PASSWORD:}}") String password,
-                         UserProfileRepository profiles) {
-        this.url = url;
-        this.username = username;
-        this.password = password;
+    public AuthUserAdminService(AuthUserRepository authUsers,
+                                AuthRoleRepository authRoles,
+                                UserProfileRepository profiles) {
+        this.authUsers = authUsers;
+        this.authRoles = authRoles;
         this.profiles = profiles;
     }
 
@@ -50,139 +54,79 @@ public class AuthUserAdminService {
     }
 
     public Optional<AuthAccount> account(UUID userId) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     SELECT u.id, u.email, u.username, u.provider, u.email_verified, u.account_locked,
-                            u.account_status, u.locked_until, u.deleted_at,
-                            COALESCE(string_agg(r.name, ',' ORDER BY r.name), '') AS roles
-                     FROM users u
-                     LEFT JOIN user_roles ur ON ur.user_id = u.id
-                     LEFT JOIN roles r ON r.id = ur.role_id
-                     WHERE u.id = ?
-                     GROUP BY u.id, u.email, u.username, u.provider, u.email_verified, u.account_locked,
-                              u.account_status, u.locked_until, u.deleted_at
-                     """)) {
-            statement.setObject(1, userId);
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    return Optional.of(toAccount(rs));
-                }
-            }
-        } catch (SQLException ex) {
-            throw new IllegalStateException("Unable to read auth user", ex);
-        }
-        return Optional.empty();
+        return authUsers.findOneById(userId).map(this::toAccount);
     }
 
+    @Transactional(transactionManager = "authTransactionManager")
     public UserDto updateRoles(UUID userId, Set<RoleType> requestedRoles) {
         Set<RoleType> roles = requestedRoles == null || requestedRoles.isEmpty()
                 ? Set.of(RoleType.USER)
                 : requestedRoles;
-        try (Connection connection = connection()) {
-            connection.setAutoCommit(false);
-            ensureRoles(connection, roles);
-            try (PreparedStatement delete = connection.prepareStatement("DELETE FROM user_roles WHERE user_id = ?")) {
-                delete.setObject(1, userId);
-                delete.executeUpdate();
-            }
-            try (PreparedStatement insert = connection.prepareStatement("""
-                    INSERT INTO user_roles(user_id, role_id)
-                    SELECT ?, id FROM roles WHERE name = ?
-                    ON CONFLICT DO NOTHING
-                    """)) {
-                for (RoleType role : roles) {
-                    insert.setObject(1, userId);
-                    insert.setString(2, role.name());
-                    insert.addBatch();
-                }
-                insert.executeBatch();
-            }
-            connection.commit();
-            return get(userId);
-        } catch (SQLException ex) {
-            throw new IllegalStateException("Unable to update user roles", ex);
-        }
+        AuthUser user = authUsers.findOneById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found"));
+        user.setRoles(resolveRoles(roles));
+        AuthAccount account = toAccount(authUsers.save(user));
+        UserProfile profile = profiles.findById(userId).orElse(null);
+        return toUser(account, profile);
     }
 
+    @Transactional(transactionManager = "authTransactionManager")
     public void updateUsername(UUID userId, String username) {
         String normalizedUsername = username == null ? "" : username.trim().toLowerCase();
         if (normalizedUsername.isBlank()) {
             return;
         }
-        try (Connection connection = connection()) {
-            try (PreparedStatement duplicate = connection.prepareStatement("SELECT 1 FROM users WHERE lower(username) = ? AND id <> ? LIMIT 1")) {
-                duplicate.setString(1, normalizedUsername);
-                duplicate.setObject(2, userId);
-                try (ResultSet rs = duplicate.executeQuery()) {
-                    if (rs.next()) {
-                        throw new ApiExceptions.ConflictException("Username already registered");
-                    }
-                }
-            }
-            try (PreparedStatement update = connection.prepareStatement("UPDATE users SET username = ? WHERE id = ?")) {
-                update.setString(1, normalizedUsername);
-                update.setObject(2, userId);
-                update.executeUpdate();
-            }
-        } catch (SQLException ex) {
-            throw new IllegalStateException("Unable to update username", ex);
+        if (authUsers.existsByUsernameIgnoreCaseAndIdNot(normalizedUsername, userId)) {
+            throw new ApiExceptions.ConflictException("Username already registered");
         }
+        authUsers.findById(userId).ifPresent(user -> user.setUsername(normalizedUsername));
     }
 
     private List<AuthAccount> searchAuthAccounts(String role) {
         String normalizedRole = role == null ? "" : role.trim().toUpperCase();
-        String sql = """
-                SELECT u.id, u.email, u.username, u.provider, u.email_verified, u.account_locked,
-                       u.account_status, u.locked_until, u.deleted_at,
-                       COALESCE(string_agg(r.name, ',' ORDER BY r.name), '') AS roles
-                FROM users u
-                LEFT JOIN user_roles ur ON ur.user_id = u.id
-                LEFT JOIN roles r ON r.id = ur.role_id
-                GROUP BY u.id, u.email, u.username, u.provider, u.email_verified, u.account_locked,
-                         u.account_status, u.locked_until, u.deleted_at
-                HAVING (? = '' OR bool_or(r.name = ?))
-                ORDER BY lower(u.email)
-                LIMIT 1000
-                """;
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, normalizedRole);
-            statement.setString(2, normalizedRole);
-            try (ResultSet rs = statement.executeQuery()) {
-                List<AuthAccount> users = new ArrayList<>();
-                while (rs.next()) {
-                    users.add(toAccount(rs));
-                }
-                return users;
-            }
-        } catch (SQLException ex) {
-            throw new IllegalStateException("Unable to search auth users", ex);
+        List<AuthUser> users = normalizedRole.isBlank()
+                ? authUsers.findAllByOrderByEmailAsc(PageRequest.of(0, AUTH_ACCOUNT_FETCH_LIMIT))
+                : authUsers.findByRolesNameOrderByEmailAsc(normalizedRole, PageRequest.of(0, AUTH_ACCOUNT_FETCH_LIMIT));
+        return users.stream()
+                .map(this::toAccount)
+                .toList();
+    }
+
+    private Set<AuthRole> resolveRoles(Set<RoleType> roles) {
+        Set<String> roleNames = roles.stream()
+                .map(RoleType::name)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<String, AuthRole> existingRoles = authRoles.findByNameIn(roleNames).stream()
+                .collect(Collectors.toMap(AuthRole::getName, role -> role));
+        Set<AuthRole> resolved = new LinkedHashSet<>();
+        for (String roleName : roleNames) {
+            AuthRole role = existingRoles.get(roleName);
+            resolved.add(role == null ? createRole(roleName) : role);
+        }
+        return resolved;
+    }
+
+    private AuthRole createRole(String roleName) {
+        try {
+            return authRoles.saveAndFlush(AuthRole.builder().name(roleName).build());
+        } catch (DataIntegrityViolationException ex) {
+            return authRoles.findByName(roleName)
+                    .orElseThrow(() -> new IllegalStateException("Role was created concurrently but could not be loaded", ex));
         }
     }
 
-    private void ensureRoles(Connection connection, Set<RoleType> roles) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("INSERT INTO roles(id, name) VALUES (?, ?) ON CONFLICT (name) DO NOTHING")) {
-            for (RoleType role : roles) {
-                statement.setObject(1, UUID.randomUUID());
-                statement.setString(2, role.name());
-                statement.addBatch();
-            }
-            statement.executeBatch();
-        }
-    }
-
-    private AuthAccount toAccount(ResultSet rs) throws SQLException {
+    private AuthAccount toAccount(AuthUser user) {
         return new AuthAccount(
-                (UUID) rs.getObject("id"),
-                rs.getString("email"),
-                rs.getString("username"),
-                rs.getString("provider"),
-                rs.getBoolean("email_verified"),
-                rs.getBoolean("account_locked"),
-                rs.getString("account_status"),
-                timestamp(rs, "locked_until"),
-                timestamp(rs, "deleted_at"),
-                roles(rs.getString("roles"))
+                user.getId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getProvider(),
+                user.isEmailVerified(),
+                user.isAccountLocked(),
+                user.getAccountStatus(),
+                user.getLockedUntil(),
+                user.getDeletedAt(),
+                roles(user.getRoles())
         );
     }
 
@@ -221,36 +165,24 @@ public class AuthUserAdminService {
         return atIndex > 0 ? email.substring(0, atIndex) : "User";
     }
 
-    private Set<RoleType> roles(String roles) {
-        Set<RoleType> parsed = Arrays.stream((roles == null ? "" : roles).split(","))
-                .map(String::trim)
-                .filter(value -> !value.isBlank())
+    private Set<RoleType> roles(Set<AuthRole> roles) {
+        Set<RoleType> parsed = (roles == null ? Set.<AuthRole>of() : roles).stream()
+                .map(AuthRole::getName)
+                .filter(Objects::nonNull)
                 .map(RoleType::valueOf)
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(RoleType.class)));
         return parsed.isEmpty() ? Set.of(RoleType.USER) : parsed;
     }
 
-    private LocalDateTime timestamp(ResultSet rs, String column) throws SQLException {
-        Timestamp timestamp = rs.getTimestamp(column);
-        return timestamp == null ? null : timestamp.toLocalDateTime();
-    }
-
-    private Connection connection() throws SQLException {
-        if (url == null || url.isBlank()) {
-            throw new IllegalStateException("AUTH_DATABASE_URL is not configured for user-service admin operations");
-        }
-        return DriverManager.getConnection(url, username, password);
-    }
-
     public record AuthAccount(UUID userId,
-                       String email,
-                       String username,
-                       String provider,
-                       boolean emailVerified,
-                       boolean accountLocked,
-                       String accountStatus,
-                       LocalDateTime lockedUntil,
-                       LocalDateTime deletedAt,
-                       Set<RoleType> roles) {
+                              String email,
+                              String username,
+                              String provider,
+                              boolean emailVerified,
+                              boolean accountLocked,
+                              String accountStatus,
+                              LocalDateTime lockedUntil,
+                              LocalDateTime deletedAt,
+                              Set<RoleType> roles) {
     }
 }

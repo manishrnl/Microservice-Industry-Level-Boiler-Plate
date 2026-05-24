@@ -70,9 +70,9 @@ public class AuthService {
     public AuthTokenResponseDto login(LoginRequestDto request, ClientRequestMetadataDto metadata) {
         String identifier = loginIdentifier(request);
         User user = findByLoginIdentifier(identifier)
-                .orElseThrow(() -> new ApiExceptions.UnauthorizedException("Invalid email or password"));
+                .orElseThrow(() -> new ApiExceptions.UnauthorizedException("Invalid email, username, or password"));
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new ApiExceptions.UnauthorizedException("Invalid email or password");
+            throw new ApiExceptions.UnauthorizedException("Invalid email, username, or password");
         }
         if (!user.isEmailVerified()) {
             mailService.sendSignupVerificationIfNeeded(user.getEmail(), displayName(user, user.getEmail(), user.getUsername()));

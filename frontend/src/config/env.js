@@ -56,6 +56,7 @@ const resolvePublicUrl = (configuredUrl, fallbackPort) => {
         return localBrowserUrl(fallbackPort);
     }
 };
+const appendPath = (baseUrl, path) => `${trimTrailingSlash(baseUrl) || ""}${path}`;
 const configuredApiGatewayUrl = trimTrailingSlash(import.meta.env.VITE_API_GATEWAY_URL || "http://127.0.0.1:8080");
 const buildApiGatewayUrl = isLocalApiUrl(configuredApiGatewayUrl)
     ? ""
@@ -76,6 +77,7 @@ const env = {
     grafanaUrl,
     zipkinUrl,
     lokiUrl,
+    lokiStatusUrl: appendPath(lokiUrl, "/loki/api/v1/status/buildinfo"),
     discoveryUrl,
     configServerUrl,
     gatewayMetricsUrl: `${resolvedApiGatewayUrl}/actuator/prometheus`,

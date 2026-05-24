@@ -33,16 +33,17 @@ const quickFilters = [
     {label: "Startup", value: {q: "Started", level: ""}},
     {label: "Flyway", value: {q: "Flyway", level: ""}}
 ];
+const grafanaExploreUrl = `${env.grafanaUrl}/explore?left=%7B%22datasource%22:%22Loki%22,%22queries%22:%5B%7B%22expr%22:%22%7Bcompose_project%3D%5C%22microservice-industry%5C%22%7D%22%7D%5D%7D`;
 const relatedLinks = [
     {
         label: "Grafana Explore",
-        href: `${env.grafanaUrl}/explore?left=%7B%22datasource%22:%22Loki%22,%22queries%22:%5B%7B%22expr%22:%22%7Bcompose_project%3D%5C%22microservice-industry%5C%22%7D%22%7D%5D%7D`,
+        href: grafanaExploreUrl,
         Icon: BarChart3,
         tone: "bg-orange-100 text-orange-700 ring-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-500/25"
     },
     {
         label: "Loki API",
-        href: env.lokiUrl,
+        href: env.lokiStatusUrl,
         Icon: Terminal,
         tone: "bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/25"
     },
@@ -98,6 +99,7 @@ const LokiLogsPage = () => {
         refetchInterval: 10000
     });
     const rows = useMemo(() => extractRows(logs.data), [logs.data]);
+    const searchTerm = filters.q.trim();
     const updateFilter = (field) => (event) => setFilters((current) => ({...current, [field]: event.target.value}));
     const applyQuickFilter = (value) => setFilters((current) => ({...current, ...value}));
     const clearFilters = () => setFilters((current) => ({...current, service: "", level: "", q: ""}));
@@ -181,7 +183,9 @@ const LokiLogsPage = () => {
                                     <span className="text-slate-400">{formatLokiTime(row.timestamp)}</span>
                                     <span className={levelClass(row.level)}>{row.level || "LOG"}</span>
                                     <span className="truncate text-cyan-200" title={row.service}>{row.service}</span>
-                                    <span className="break-all text-slate-100">{row.message}</span>
+                                    <span className="break-all text-slate-100">
+                                        <HighlightedText value={row.message} search={searchTerm}/>
+                                    </span>
                                 </div>)}
                                 {!rows.length && <p className="px-3 py-8 text-center text-sm text-slate-400">No matching Loki logs.</p>}
                             </div>
@@ -224,6 +228,41 @@ const Select = ({value, onChange, options, label, labels = {}}) => <select
 >
     {options.map((option) => <option key={option || label} value={option}>{option ? labels[option] || option : label}</option>)}
 </select>;
+
+const HighlightedText = ({value, search}) => {
+    const parts = highlightParts(value, search);
+    return parts.map((part, index) => part.match
+        ? <mark
+            key={`${index}-${part.text}`}
+            className="rounded-sm bg-amber-300 px-0.5 font-bold text-slate-950 ring-1 ring-amber-200"
+        >{part.text}</mark>
+        : <span key={`${index}-${part.text}`}>{part.text}</span>);
+};
+
+const highlightParts = (value, search) => {
+    const text = String(value ?? "");
+    const needle = String(search ?? "").trim();
+    if (!needle) {
+        return [{text, match: false}];
+    }
+    const lowerText = text.toLowerCase();
+    const lowerNeedle = needle.toLowerCase();
+    const parts = [];
+    let cursor = 0;
+    let nextMatch = lowerText.indexOf(lowerNeedle, cursor);
+    while (nextMatch !== -1) {
+        if (nextMatch > cursor) {
+            parts.push({text: text.slice(cursor, nextMatch), match: false});
+        }
+        parts.push({text: text.slice(nextMatch, nextMatch + needle.length), match: true});
+        cursor = nextMatch + needle.length;
+        nextMatch = lowerText.indexOf(lowerNeedle, cursor);
+    }
+    if (cursor < text.length) {
+        parts.push({text: text.slice(cursor), match: false});
+    }
+    return parts.length ? parts : [{text, match: false}];
+};
 
 const buildLogQl = ({service, level, q}) => {
     const selectors = [service ? `service="${escapeLabel(service)}"` : "compose_project=\"microservice-industry\""];

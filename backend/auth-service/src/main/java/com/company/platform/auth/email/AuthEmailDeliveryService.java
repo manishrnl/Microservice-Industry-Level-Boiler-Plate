@@ -126,9 +126,10 @@ public class AuthEmailDeliveryService {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("Brevo accepted auth email for {}", to);
                 return true;
             }
-            log.warn("Brevo auth email failed for {} with status {}", to, response.statusCode());
+            log.warn("Brevo auth email failed for {} with status {} and body {}", to, response.statusCode(), response.body());
         } catch (IOException ex) {
             log.warn("Brevo auth email payload could not be created for {}", to, ex);
         } catch (InterruptedException ex) {

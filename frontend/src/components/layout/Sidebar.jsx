@@ -24,19 +24,17 @@ const mainLinks = [
     {label: "Profile", to: "/app/profile", Icon: UserRound}
 ];
 const Sidebar = () => {
-    const {isAdmin, isSuperAdmin} = usePermission();
+    const {isAdmin} = usePermission();
     const adminLinks = isAdmin() ? [
         {label: "Users", to: "/app/admin/users", Icon: Users},
         {label: "Audit", to: "/app/admin/audit", Icon: History},
-        {label: "Observability", to: "/app/admin/observability", Icon: RadioTower}
-    ] : [];
-    const superAdminLinks = isSuperAdmin() ? [
-        {label: "System Logs", to: "/app/super-admin/logs", Icon: RadioTower}
+        {label: "Observability", to: "/app/admin/observability", Icon: RadioTower},
+        {label: "Loki Logs", to: "/app/admin/logs", Icon: RadioTower}
     ] : [];
     return <aside className="hidden w-64 border-r border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950 md:block">
         <BrandMark className="mb-5 px-1"/>
         <nav className="space-y-1">
-            {[...mainLinks, ...adminLinks, ...superAdminLinks].map(({label, to, Icon, end}) => <NavLink
+            {[...mainLinks, ...adminLinks].map(({label, to, Icon, end}) => <NavLink
                 key={to}
                 to={to}
                 end={end}

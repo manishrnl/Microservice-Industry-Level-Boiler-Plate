@@ -122,7 +122,7 @@ const LoginPage = () => {
                 setLoginNotice("Enter the OTP sent to your email. You can request a new one after 10 minutes.");
                 return;
             }
-            setLoginError(status === 401 ? "Invalid email or password." : detail || "Could not sign in. Please try again.");
+            setLoginError(status === 401 ? "Invalid email, username, or password." : detail || "Could not sign in. Please try again.");
         }
     });
     if (isLoading) {

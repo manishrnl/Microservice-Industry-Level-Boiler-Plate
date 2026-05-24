@@ -44,13 +44,18 @@ public class AuthBootstrapData implements ApplicationRunner {
         Role superAdminRole = role(RoleType.SUPER_ADMIN);
 
         String email = normalizeEmail(superAdminEmail);
+        boolean existingUser = userRepository.existsByEmailIgnoreCase(email);
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseGet(() -> User.builder()
                         .email(email)
                         .provider("LOCAL")
                         .build());
-        user.setUsername(normalizeUsername(superAdminUsername));
-        user.setPasswordHash(passwordEncoder.encode(superAdminPassword));
+        if (user.getUsername() == null || user.getUsername().isBlank()) {
+            user.setUsername(normalizeUsername(superAdminUsername));
+        }
+        if (!existingUser || user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(superAdminPassword));
+        }
         user.setEmailVerified(true);
         user.setAccountLocked(false);
         user.setFailedAttempts(0);

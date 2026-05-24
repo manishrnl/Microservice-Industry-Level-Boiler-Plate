@@ -4,17 +4,15 @@ import {mainLinks} from "./Sidebar";
 import {History, RadioTower, Users} from "lucide-react";
 
 const MobileNav = () => {
-    const {isAdmin, isSuperAdmin} = usePermission();
+    const {isAdmin} = usePermission();
     const adminLinks = isAdmin() ? [
         {label: "Users", to: "/app/admin/users", Icon: Users},
         {label: "Audit", to: "/app/admin/audit", Icon: History},
-        {label: "Ops", to: "/app/admin/observability", Icon: RadioTower}
-    ] : [];
-    const superAdminLinks = isSuperAdmin() ? [
-        {label: "Logs", to: "/app/super-admin/logs", Icon: RadioTower}
+        {label: "Ops", to: "/app/admin/observability", Icon: RadioTower},
+        {label: "Logs", to: "/app/admin/logs", Icon: RadioTower}
     ] : [];
     const links = isAdmin()
-        ? [...mainLinks.slice(0, 3), ...adminLinks, ...superAdminLinks].slice(0, 7)
+        ? [...mainLinks.slice(0, 3), ...adminLinks].slice(0, 7)
         : mainLinks.slice(0, 5);
 
     return <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur dark:border-white/10 dark:bg-slate-950/95 lg:hidden">

@@ -82,17 +82,17 @@ public class ObservabilityLogController {
                                     @RequestParam(value = "end", required = false) String end) {
         String logql = query == null || query.isBlank() ? "{compose_project=\"microservice-industry\"}" : query;
         int cappedLimit = Math.max(1, Math.min(limit, 1000));
-        String safeDirection = "FORWARD".equalsIgnoreCase(direction) ? "FORWARD" : "BACKWARD";
+        String safeDirection = "FORWARD".equalsIgnoreCase(direction) ? "forward" : "backward";
         return requireAdmin(authorization)
                 .then(lokiClient.get()
                         .uri(builder -> builder
                                 .path("/loki/api/v1/query_range")
-                                .queryParam("query", logql)
+                                .queryParam("query", "{logql}")
                                 .queryParam("limit", cappedLimit)
                                 .queryParam("direction", safeDirection)
                                 .queryParamIfPresent("start", optionalText(start))
                                 .queryParamIfPresent("end", optionalText(end))
-                                .build())
+                                .build(Map.of("logql", logql)))
                         .retrieve()
                         .bodyToMono(Map.class));
     }

@@ -20,6 +20,7 @@ export default defineConfig(({mode}) => {
     const prometheusUrl = normalizeUrl(firstValue(process.env.VITE_PROMETHEUS_URL, frontendEnv.VITE_PROMETHEUS_URL, rootEnv.VITE_PROMETHEUS_URL, process.env.PROMETHEUS_URL, rootEnv.PROMETHEUS_URL));
     const grafanaUrl = normalizeUrl(firstValue(process.env.VITE_GRAFANA_URL, frontendEnv.VITE_GRAFANA_URL, rootEnv.VITE_GRAFANA_URL, process.env.GRAFANA_URL, rootEnv.GRAFANA_URL));
     const zipkinUrl = normalizeUrl(firstValue(process.env.VITE_ZIPKIN_URL, frontendEnv.VITE_ZIPKIN_URL, rootEnv.VITE_ZIPKIN_URL, process.env.ZIPKIN_URL, rootEnv.ZIPKIN_URL));
+    const lokiUrl = normalizeUrl(firstValue(process.env.VITE_LOKI_URL, frontendEnv.VITE_LOKI_URL, rootEnv.VITE_LOKI_URL, process.env.LOKI_URL, rootEnv.LOKI_URL));
     const discoveryUrl = normalizeUrl(firstValue(process.env.VITE_DISCOVERY_URL, frontendEnv.VITE_DISCOVERY_URL, rootEnv.VITE_DISCOVERY_URL));
     const configServerUrl = normalizeUrl(firstValue(process.env.VITE_CONFIG_SERVER_URL, frontendEnv.VITE_CONFIG_SERVER_URL, rootEnv.VITE_CONFIG_SERVER_URL));
     const virtualAdapterPattern = /(virtual|vethernet|wsl|docker|hyper-v|vmware|virtualbox|loopback|bluetooth)/i;
@@ -51,6 +52,7 @@ export default defineConfig(({mode}) => {
             "import.meta.env.VITE_PROMETHEUS_URL": JSON.stringify(prometheusUrl),
             "import.meta.env.VITE_GRAFANA_URL": JSON.stringify(grafanaUrl),
             "import.meta.env.VITE_ZIPKIN_URL": JSON.stringify(zipkinUrl),
+            "import.meta.env.VITE_LOKI_URL": JSON.stringify(lokiUrl),
             "import.meta.env.VITE_DISCOVERY_URL": JSON.stringify(discoveryUrl),
             "import.meta.env.VITE_CONFIG_SERVER_URL": JSON.stringify(configServerUrl)
         },

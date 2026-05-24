@@ -64,6 +64,7 @@ const resolvedApiGatewayUrl = runtimeApiGatewayUrl() || buildApiGatewayUrl;
 const prometheusUrl = resolvePublicUrl(import.meta.env.VITE_PROMETHEUS_URL, "9090");
 const grafanaUrl = resolvePublicUrl(import.meta.env.VITE_GRAFANA_URL, "3000");
 const zipkinUrl = resolvePublicUrl(import.meta.env.VITE_ZIPKIN_URL, "9411");
+const lokiUrl = resolvePublicUrl(import.meta.env.VITE_LOKI_URL, "3100");
 const discoveryUrl = resolvePublicUrl(import.meta.env.VITE_DISCOVERY_URL, "8761");
 const configServerUrl = resolvePublicUrl(import.meta.env.VITE_CONFIG_SERVER_URL, "8888");
 
@@ -74,6 +75,7 @@ const env = {
     prometheusUrl,
     grafanaUrl,
     zipkinUrl,
+    lokiUrl,
     discoveryUrl,
     configServerUrl,
     gatewayMetricsUrl: `${resolvedApiGatewayUrl}/actuator/prometheus`,

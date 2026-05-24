@@ -41,6 +41,7 @@ const pageTitles = [
     {path: "/app/admin/users", title: "Admin Users"},
     {path: "/app/admin/audit", title: "Admin Audit"},
     {path: "/app/admin/observability", title: "Observability"},
+    {path: "/app/super-admin/observability", title: "Super Admin Logs"},
     {path: "/403", title: "Access Denied"}
 ];
 
@@ -94,6 +95,9 @@ const App = () => {
                         <Route path="admin/audit" element={<AuditLogPage/>}/>
                         <Route path="admin/observability" element={<ObservabilityPage/>}/>
                     </Route>
+                    <Route element={<ProtectedRoute requiredRole="SUPER_ADMIN"/>}>
+                        <Route path="super-admin/observability" element={<ObservabilityPage/>}/>
+                    </Route>
                 </Route>
             </Route>
             <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace/>}/>
@@ -106,6 +110,8 @@ const App = () => {
             <Route path="/admin/users" element={<Navigate to="/app/admin/users" replace/>}/>
             <Route path="/admin/audit" element={<Navigate to="/app/admin/audit" replace/>}/>
             <Route path="/admin/observability" element={<Navigate to="/app/admin/observability" replace/>}/>
+            <Route path="/super-admin/observability" element={<Navigate to="/app/super-admin/observability" replace/>}/>
+            <Route path="/super-admin/logs" element={<Navigate to="/app/super-admin/observability" replace/>}/>
             <Route path="/403" element={<AccessDeniedPage/>}/>
             <Route path="*" element={<NotFoundPage/>}/>
         </Routes>

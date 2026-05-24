@@ -20,7 +20,9 @@ const quickFilters = [
 
 const observabilityLinks = [
     {label: "Grafana", href: env.grafanaUrl, Icon: BarChart3},
+    {label: "Grafana Explore Logs", href: `${env.grafanaUrl}/explore?left=%7B%22datasource%22:%22Loki%22,%22queries%22:%5B%7B%22expr%22:%22%7Bcompose_project%3D%5C%22microservice-industry%5C%22%7D%22%7D%5D%7D`, Icon: Terminal},
     {label: "Prometheus", href: env.prometheusUrl, Icon: Activity},
+    {label: "Loki API", href: env.lokiUrl, Icon: Terminal},
     {label: "Zipkin", href: env.zipkinUrl, Icon: RadioTower},
     {label: "Eureka", href: env.discoveryUrl, Icon: ServerCog},
     {label: "Gateway Health", href: env.gatewayHealthUrl, Icon: ShieldCheck},

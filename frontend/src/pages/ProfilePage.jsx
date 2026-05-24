@@ -163,6 +163,30 @@ const ProfilePage = () => {
     };
 
     return <PageWrapper title="Profile">
+        <div className="space-y-5">
+            <section className="rounded-md border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Account name</h2>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Update the username shown in the header and profile.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => saveSettings.mutate()}
+                        disabled={saveSettings.isPending}
+                        className="inline-flex h-10 items-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-wait disabled:opacity-70 dark:bg-teal-300 dark:text-slate-950 dark:hover:bg-teal-200"
+                    >
+                        <Save className="h-4 w-4"/>
+                        Save name
+                    </button>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <Field label="Username" Icon={AtSign} value={settings.username} onChange={updateSetting("username")} placeholder="your_username"/>
+                    <Field label="Full name" Icon={UserRound} value={settings.name} onChange={updateSetting("name")} placeholder="Your full name"/>
+                </div>
+                {saveSettings.isError && <p className="mt-3 text-sm text-red-600 dark:text-red-300">Could not save the username. Check that it is unique and valid.</p>}
+            </section>
+
         <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
             <aside className="space-y-5">
                 <section className="rounded-md border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
@@ -242,8 +266,6 @@ const ProfilePage = () => {
                     ) : null}
                 >
                     <div className="mt-5 grid gap-4 md:grid-cols-2">
-                        <Field label="Full name" Icon={UserRound} value={settings.name} onChange={updateSetting("name")}/>
-                        <Field label="Username" Icon={AtSign} value={settings.username} onChange={updateSetting("username")} placeholder="your_username"/>
                         <Field label="Phone number" Icon={Phone} value={settings.phoneNumber} onChange={updateSetting("phoneNumber")} placeholder="+91 98765 43210"/>
                         <Field label="Aadhaar number" Icon={IdCard} value={settings.aadhaarNumber} onChange={updateSetting("aadhaarNumber")} inputMode="numeric" maxLength={12} placeholder="12 digits"/>
                         <Field label="PAN number" Icon={CreditCard} value={settings.panNumber} onChange={(event) => setSettings((value) => ({...value, panNumber: event.target.value.toUpperCase()}))} maxLength={10} placeholder="ABCDE1234F"/>
@@ -324,6 +346,7 @@ const ProfilePage = () => {
                     </div>
                 </SettingsPanel>
             </main>
+        </div>
         </div>
     </PageWrapper>;
 };

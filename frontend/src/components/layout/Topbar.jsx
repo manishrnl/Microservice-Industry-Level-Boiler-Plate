@@ -20,7 +20,7 @@ const Topbar = () => {
     const logout = useAuthStore((state) => state.logout);
     const [profileOpen, setProfileOpen] = useState(false);
     const [closedMenu, setClosedMenu] = useState("");
-    const {isAdmin} = usePermission();
+    const {isAdmin, isSuperAdmin} = usePermission();
     const navigate = useNavigate();
     const location = useLocation();
     const accountSettings = useQuery({
@@ -51,7 +51,8 @@ const Topbar = () => {
     const adminLinks = [
         {label: "Users", to: "/app/admin/users", Icon: Users},
         {label: "Audit", to: "/app/admin/audit", Icon: History},
-        {label: "Observability", to: "/app/admin/observability", Icon: RadioTower}
+        {label: "Observability", to: "/app/admin/observability", Icon: RadioTower},
+        ...(isSuperAdmin() ? [{label: "System Logs", to: "/app/super-admin/observability", Icon: RadioTower}] : [])
     ];
     return <header className="grid min-h-16 grid-cols-[1fr_auto] items-center gap-3 border-b border-slate-200 bg-white px-4 py-2 dark:border-white/10 dark:bg-slate-950 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_auto]">
         <div className="flex min-w-0 items-center">

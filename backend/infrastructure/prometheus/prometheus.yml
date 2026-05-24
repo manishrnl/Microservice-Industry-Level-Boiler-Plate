@@ -14,3 +14,8 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["ai-service:8086"]
+  - job_name: observability-sample-exporter
+    metrics_path: /metrics
+    fallback_scrape_protocol: PrometheusText0.0.4
+    static_configs:
+      - targets: ["observability-sample-exporter:9109"]

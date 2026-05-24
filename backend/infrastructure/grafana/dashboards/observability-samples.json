@@ -1,0 +1,110 @@
+{
+  "uid": "platform-observability-samples",
+  "title": "Platform Observability Samples",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Prometheus Targets Up",
+      "gridPos": {"h": 7, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(up)"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Sample Request Volume",
+      "gridPos": {"h": 7, "w": 18, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "platform_sample_requests_total"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Sample P95 Latency",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 7},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "platform_sample_request_p95_milliseconds"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Kafka Sample Messages",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 7},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "platform_kafka_sample_messages_total"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Zipkin Sample Spans",
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 15},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(platform_zipkin_sample_spans_total)"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "text",
+      "title": "Where To View Samples",
+      "gridPos": {"h": 6, "w": 16, "x": 8, "y": 15},
+      "options": {
+        "mode": "markdown",
+        "content": "Prometheus scrapes `observability-sample-exporter:9109`. Kafka sample messages are written to `observability.sample.events` plus the platform event topics. Zipkin traces are submitted with service names `api-gateway`, `auth-service`, `user-service`, `payment-service`, `notification-service`, and `audit-service`."
+      }
+    }
+  ]
+}

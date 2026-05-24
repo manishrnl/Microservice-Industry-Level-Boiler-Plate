@@ -1,9 +1,11 @@
 import {
+    Activity,
     AlertTriangle,
     BarChart3,
     Clock3,
     Database,
     ExternalLink,
+    RadioTower,
     RefreshCw,
     Search,
     ServerCog,
@@ -34,6 +36,43 @@ const quickFilters = [
     {label: "Flyway", value: {q: "Flyway", level: ""}}
 ];
 const grafanaExploreUrl = `${env.grafanaUrl}/explore?left=%7B%22datasource%22:%22Loki%22,%22queries%22:%5B%7B%22expr%22:%22%7Bcompose_project%3D%5C%22microservice-industry%5C%22%7D%22%7D%5D%7D`;
+const grafanaSamplesUrl = `${env.grafanaUrl}/d/platform-observability-samples/platform-observability-samples?orgId=1&from=now-30m&to=now`;
+const prometheusQueryUrl = (expr) => `${env.prometheusUrl}/query?g0.expr=${encodeURIComponent(expr)}&g0.tab=graph&g0.range_input=30m`;
+const zipkinSamplesUrl = `${env.zipkinUrl}/zipkin/?serviceName=api-gateway&lookback=1h&limit=10`;
+const quickViewLinks = [
+    {
+        label: "All Samples",
+        context: "Grafana dashboard",
+        detail: "Prometheus, Zipkin, and Kafka sample signals in one place.",
+        href: grafanaSamplesUrl,
+        Icon: BarChart3,
+        tone: "bg-orange-100 text-orange-700 ring-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-500/25"
+    },
+    {
+        label: "Prometheus",
+        context: "Sample metrics",
+        detail: "Request counters, p95 latency, and seeded platform metrics.",
+        href: prometheusQueryUrl("platform_sample_requests_total"),
+        Icon: Activity,
+        tone: "bg-red-100 text-red-700 ring-red-200 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-500/25"
+    },
+    {
+        label: "Zipkin",
+        context: "Sample traces",
+        detail: "Login and payment traces across gateway and services.",
+        href: zipkinSamplesUrl,
+        Icon: RadioTower,
+        tone: "bg-violet-100 text-violet-700 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/25"
+    },
+    {
+        label: "Kafka",
+        context: "Sample events",
+        detail: "Produced event counts for auth, user, payment, and audit topics.",
+        href: prometheusQueryUrl("platform_kafka_sample_messages_total"),
+        Icon: Database,
+        tone: "bg-cyan-100 text-cyan-700 ring-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:ring-cyan-500/25"
+    }
+];
 const relatedLinks = [
     {
         label: "Grafana Explore",
@@ -52,6 +91,12 @@ const relatedLinks = [
         href: env.prometheusUrl,
         Icon: Database,
         tone: "bg-red-100 text-red-700 ring-red-200 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-500/25"
+    },
+    {
+        label: "Zipkin",
+        href: env.zipkinUrl,
+        Icon: RadioTower,
+        tone: "bg-violet-100 text-violet-700 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/25"
     },
     {
         label: "Gateway Health",
@@ -106,6 +151,43 @@ const LokiLogsPage = () => {
 
     return <PageWrapper title="Loki Logs">
         <div className="space-y-5">
+            <section className="rounded-md border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Observability quick views</h2>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Open the seeded Prometheus, Zipkin, and Kafka views directly.</p>
+                    </div>
+                    <a
+                        href={grafanaSamplesUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-10 items-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-teal-300 dark:text-slate-950 dark:hover:bg-teal-200"
+                    >
+                        <BarChart3 className="h-4 w-4"/>
+                        Open sample dashboard
+                    </a>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {quickViewLinks.map(({label, context, detail, href, Icon, tone}) => <a
+                        key={label}
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group rounded-md border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md dark:border-white/10 dark:hover:border-white/20 dark:hover:bg-white/[0.04]"
+                    >
+                        <span className="flex items-start justify-between gap-4">
+                            <span className={`grid h-10 w-10 place-items-center rounded-md ring-1 ${tone}`}>
+                                <Icon className="h-5 w-5"/>
+                            </span>
+                            <ExternalLink className="h-4 w-4 text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-white"/>
+                        </span>
+                        <span className="mt-4 block text-[11px] font-bold uppercase tracking-wide text-slate-400">{context}</span>
+                        <span className="mt-1 block text-base font-semibold text-slate-950 dark:text-white">{label}</span>
+                        <span className="mt-2 block min-h-10 text-sm text-slate-500 dark:text-slate-400">{detail}</span>
+                    </a>)}
+                </div>
+            </section>
+
             <section className="rounded-md border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">

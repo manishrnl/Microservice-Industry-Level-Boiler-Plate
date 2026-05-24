@@ -4,9 +4,10 @@ import {useEffect, useRef, useState} from "react";
 import ReactMarkdown from "react-markdown";
 import {apiClient} from "../../api/axiosInstance";
 import {endpoints} from "../../api/endpoints";
-import {useAuthStore} from "../../store/authStore";
+import {useAccountIdentity} from "../../hooks/useAccountIdentity";
 import {usePreferencesStore} from "../../store/preferencesStore";
 import {asArray, extractAssistantContent, unwrapApiData} from "../../utils/responseUtils";
+import {displayUserName} from "../../utils/userDisplay";
 
 const createClientId = () => {
     if (globalThis.crypto?.randomUUID) {
@@ -20,7 +21,7 @@ const identityFallback = (content, user) => {
     if (!isIdentityQuestion(content) || !user) {
         return "";
     }
-    const displayName = user.name || user.email?.split("@")[0] || "the signed-in user";
+    const displayName = displayUserName(user.name, user.email, "the signed-in user");
     const roles = Array.isArray(user.roles) && user.roles.length ? ` Your roles are ${user.roles.join(", ")}.` : "";
     const email = user.email ? ` (${user.email})` : "";
     return `You are ${displayName}${email}.${roles}`;
@@ -85,7 +86,7 @@ const weatherFallback = async (content, location) => {
 
 const AiChatPage = () => {
     const queryClient = useQueryClient();
-    const currentUser = useAuthStore((state) => state.user);
+    const {identity: currentUser} = useAccountIdentity();
     const timezone = usePreferencesStore((state) => state.timezone);
     const [sessions, setSessions] = useState([]);
     const [activeSession, setActiveSession] = useState("");

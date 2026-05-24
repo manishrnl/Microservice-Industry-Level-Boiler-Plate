@@ -1,51 +1,32 @@
 import {ChevronDown, History, LogOut, RadioTower, Users} from "lucide-react";
 import {NavLink, useLocation, useNavigate} from "react-router-dom";
-import {useEffect, useState} from "react";
-import {useQuery} from "@tanstack/react-query";
-import {apiClient} from "../../api/axiosInstance";
-import {endpoints} from "../../api/endpoints";
+import {useState} from "react";
 import {ThemeToggle} from "../common/ThemeToggle";
 import {Avatar} from "../common/Avatar";
 import {NotificationBell} from "../notifications/NotificationBell";
 import {useAuthStore} from "../../store/authStore";
 import {usePermission} from "../../hooks/usePermission";
-import {unwrapApiData} from "../../utils/responseUtils";
+import {firstDisplayName} from "../../utils/userDisplay";
+import {useAccountIdentity} from "../../hooks/useAccountIdentity";
 import {ProfileMenu} from "./ProfileMenu";
 import {mainLinks} from "./Sidebar";
 import {BrandMark} from "./BrandMark";
 
 const Topbar = () => {
-    const user = useAuthStore((state) => state.user);
-    const updateUser = useAuthStore((state) => state.updateUser);
     const logout = useAuthStore((state) => state.logout);
+    const {identity, identityReady} = useAccountIdentity();
     const [profileOpen, setProfileOpen] = useState(false);
     const [closedMenu, setClosedMenu] = useState("");
     const {isAdmin} = usePermission();
     const navigate = useNavigate();
     const location = useLocation();
-    const accountSettings = useQuery({
-        queryKey: ["account-settings"],
-        enabled: Boolean(user?.userId || user?.email) && (!user?.avatarUrl || !user?.username),
-        staleTime: 5 * 60 * 1000,
-        queryFn: async () => unwrapApiData((await apiClient.get(endpoints.users.settings)).data)
-    });
-
-    useEffect(() => {
-        if (accountSettings.data) {
-            updateUser({
-                name: accountSettings.data.name,
-                username: accountSettings.data.username,
-                avatarUrl: accountSettings.data.avatarUrl
-            });
-        }
-    }, [accountSettings.data, updateUser]);
 
     const handleLogout = async () => {
         await logout();
         setProfileOpen(false);
         navigate("/login", {replace: true});
     };
-    const greetingName = greetingDisplayName(user);
+    const greetingName = identityReady ? firstDisplayName(identity?.name, identity?.email, "") : "";
     const primaryLinks = mainLinks.slice(0, 3);
     const moreLinks = mainLinks.slice(3);
     const adminLinks = [
@@ -95,10 +76,10 @@ const Topbar = () => {
                 aria-label="Toggle profile menu"
                 aria-expanded={profileOpen}
             >
-                <Avatar src={user?.avatarUrl} name={user?.name} email={user?.email} size="sm"/>
+                <Avatar src={identity?.avatarUrl} name={identity?.name} email={identity?.email} size="sm"/>
             </button>
                 {profileOpen && <ProfileMenu
-                    user={user}
+                    user={identity}
                     onClose={() => setProfileOpen(false)}
                     onLogout={handleLogout}
                 />}
@@ -144,10 +125,6 @@ const NavDropdown = ({label, links, active, closedMenu, onClose, onOpen}) => <di
         </div>
     </div>
 </div>;
-const greetingDisplayName = (user) => {
-    const candidate = user?.name ;
-    return candidate?.trim().split(/\s+/)[0] || "";
-};
 export {
     Topbar
 };

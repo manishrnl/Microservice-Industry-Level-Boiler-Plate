@@ -1,8 +1,14 @@
 package com.company.platform.user.controller;
 
 import com.company.platform.user.dto.AvatarUpdateRequestDto;
+import com.company.platform.user.dto.AuthAccountDto;
+import com.company.platform.user.dto.UserHeaderContextDto;
 import com.company.platform.user.dto.UserAccountSettingsDto;
 import com.company.platform.user.dto.UserAccountSettingsUpdateRequestDto;
+import com.company.platform.user.dto.UserPreferenceUpdateRequestDto;
+import com.company.platform.user.dto.UserProfileUpdateRequestDto;
+import com.company.platform.user.dto.UserRoleUpdateRequestDto;
+import com.company.platform.user.mapper.UserAccountMapper;
 import com.company.platform.user.model.UserContactDetails;
 import com.company.platform.user.model.UserIdentityDocument;
 import com.company.platform.user.model.UserPreference;
@@ -16,6 +22,7 @@ import com.company.platform.commons.dto.DemoUserRequestDto;
 import com.company.platform.commons.dto.UserDto;
 import com.company.platform.commons.enums.RoleType;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,24 +35,14 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@RequiredArgsConstructor
 public class UserController {
     private final UserPreferenceRepository preferences;
     private final AuthUserAdminService authUsers;
     private final UserProfileRepository profiles;
     private final UserIdentityDocumentRepository identityDocuments;
     private final UserContactDetailsRepository contactDetails;
-
-    public UserController(UserPreferenceRepository preferences,
-                          AuthUserAdminService authUsers,
-                          UserProfileRepository profiles,
-                          UserIdentityDocumentRepository identityDocuments,
-                          UserContactDetailsRepository contactDetails) {
-        this.preferences = preferences;
-        this.authUsers = authUsers;
-        this.profiles = profiles;
-        this.identityDocuments = identityDocuments;
-        this.contactDetails = contactDetails;
-    }
+    private final UserAccountMapper userAccountMapper;
 
     @GetMapping("/me")
     UserDto me(@RequestHeader("X-User-Id") UUID userId,
@@ -53,21 +50,22 @@ public class UserController {
                @RequestHeader(value = "X-User-Name", required = false) String name,
                @RequestHeader(value = "X-User-Roles", required = false) String roles) {
         UserProfile profile = profiles.findById(userId).orElse(null);
-        String username = authUsers.account(userId).map(AuthUserAdminService.AuthAccount::username).orElse(null);
-        return new UserDto(userId, displayName(profile == null ? name : profile.getName(), email), email, username, parseRoles(roles), profile == null ? null : profile.getAvatarUrl());
+        AuthAccountDto auth = authUsers.account(userId).orElse(null);
+        return userAccountMapper.toUserDto(profile, headerContext(userId, email, name, roles), auth == null ? null : auth.getUsername());
     }
 
     @PutMapping("/me")
     UserDto updateMe(@RequestHeader("X-User-Id") UUID userId,
                      @RequestHeader("X-User-Email") String email,
+                     @RequestHeader(value = "X-User-Name", required = false) String headerName,
                      @RequestHeader(value = "X-User-Roles", required = false) String roles,
-                     @RequestBody Map<String, Object> request) {
-        String name = request.get("name") instanceof String value && !value.isBlank() ? value : displayName(null, email);
+                     @Valid @RequestBody UserProfileUpdateRequestDto request) {
+        String name = userAccountMapper.displayName(request.getName(), null, email);
         UserProfile profile = profile(userId);
         profile.setName(name);
         profiles.save(profile);
-        String username = authUsers.account(userId).map(AuthUserAdminService.AuthAccount::username).orElse(null);
-        return new UserDto(userId, name, email, username, parseRoles(roles), profile.getAvatarUrl());
+        AuthAccountDto auth = authUsers.account(userId).orElse(null);
+        return userAccountMapper.toUserDto(profile, headerContext(userId, email, headerName, roles), auth == null ? null : auth.getUsername());
     }
 
     @GetMapping("/me/settings")
@@ -75,34 +73,11 @@ public class UserController {
                                            @RequestHeader("X-User-Email") String email,
                                            @RequestHeader(value = "X-User-Name", required = false) String headerName,
                                            @RequestHeader(value = "X-User-Roles", required = false) String headerRoles) {
-        AuthUserAdminService.AuthAccount auth = authUsers.account(userId).orElse(null);
+        AuthAccountDto auth = authUsers.account(userId).orElse(null);
         UserProfile profile = profiles.findById(userId).orElse(null);
         UserIdentityDocument identity = identityDocuments.findById(userId).orElse(null);
         UserContactDetails contact = contactDetails.findById(userId).orElse(null);
-        String username = auth == null ? null : auth.username();
-        return UserAccountSettingsDto.builder()
-                .userId(userId)
-                .name(displayName(profile == null ? headerName : profile.getName(), email))
-                .email(auth == null ? email : auth.email())
-                .username(username)
-                .avatarUrl(profile == null ? null : profile.getAvatarUrl())
-                .provider(auth == null ? null : auth.provider())
-                .emailVerified(auth != null && auth.emailVerified())
-                .accountLocked(auth != null && auth.accountLocked())
-                .accountStatus(auth == null || auth.accountStatus() == null ? "ACTIVE" : auth.accountStatus())
-                .lockedUntil(auth == null ? null : auth.lockedUntil())
-                .deletedAt(auth == null ? null : auth.deletedAt())
-                .roles(auth == null ? parseRoles(headerRoles) : auth.roles())
-                .aadhaarNumber(firstNonBlank(identity == null ? null : identity.getAadhaarNumber(), profile == null ? null : profile.getAadhaarNumber()))
-                .panNumber(firstNonBlank(identity == null ? null : identity.getPanNumber(), profile == null ? null : profile.getPanNumber()))
-                .phoneNumber(firstNonBlank(contact == null ? null : contact.getPhoneNumber(), profile == null ? null : profile.getPhoneNumber()))
-                .dateOfBirth(profile == null ? null : profile.getDateOfBirth())
-                .addressLine(firstNonBlank(contact == null ? null : contact.getAddressLine(), profile == null ? null : profile.getAddressLine()))
-                .city(firstNonBlank(contact == null ? null : contact.getCity(), profile == null ? null : profile.getCity()))
-                .state(firstNonBlank(contact == null ? null : contact.getState(), profile == null ? null : profile.getState()))
-                .country(firstNonBlank(contact == null ? null : contact.getCountry(), profile == null ? null : profile.getCountry()))
-                .postalCode(firstNonBlank(contact == null ? null : contact.getPostalCode(), profile == null ? null : profile.getPostalCode()))
-                .build();
+        return userAccountMapper.toAccountSettingsDto(headerContext(userId, email, headerName, headerRoles), auth, profile, identity, contact);
     }
 
     @PutMapping("/me/settings")
@@ -162,9 +137,8 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/role")
-    UserDto updateRole(@PathVariable UUID id, @RequestBody Map<String, Object> request) {
-        Set<RoleType> roles = requestedRoles(request);
-        return authUsers.updateRoles(id, roles);
+    UserDto updateRole(@PathVariable UUID id, @Valid @RequestBody UserRoleUpdateRequestDto request) {
+        return authUsers.updateRoles(id, request.toRoleTypes());
     }
 
     @GetMapping("/me/preferences")
@@ -178,8 +152,8 @@ public class UserController {
 
     @PutMapping("/me/preferences")
     Map<String, Object> updatePreferences(@RequestHeader("X-User-Id") UUID userId,
-                                          @RequestBody Map<String, Object> request) {
-        String timezone = request.get("timezone") instanceof String value ? value : "";
+                                          @Valid @RequestBody UserPreferenceUpdateRequestDto request) {
+        String timezone = request.getTimezone() == null ? "" : request.getTimezone();
         timezone = validTimezoneOrDefault(timezone);
         UserPreference preference = preferences.findById(userId).orElseGet(UserPreference::new);
         preference.setUserId(userId);
@@ -193,19 +167,19 @@ public class UserController {
                    @RequestHeader("X-User-Email") String email,
                    @RequestHeader(value = "X-User-Name", required = false) String name,
                    @RequestHeader(value = "X-User-Roles", required = false) String roles,
-                   @RequestBody AvatarUpdateRequestDto request) {
+                   @Valid @RequestBody AvatarUpdateRequestDto request) {
         UserProfile profile = profile(userId);
         profile.setAvatarUrl(blankToNull(request.getAvatarUrl()));
         profiles.save(profile);
-        String username = authUsers.account(userId).map(AuthUserAdminService.AuthAccount::username).orElse(null);
-        return new UserDto(userId, displayName(profile.getName() == null ? name : profile.getName(), email), email, username, parseRoles(roles), profile.getAvatarUrl());
+        AuthAccountDto auth = authUsers.account(userId).orElse(null);
+        return userAccountMapper.toUserDto(profile, headerContext(userId, email, name, roles), auth == null ? null : auth.getUsername());
     }
 
     @PostMapping("/internal/demo-data")
     UserDto seedDemoData(@RequestBody DemoUserRequestDto request) {
         UserProfile profile = profile(request.userId());
         if (profile.getName() == null || profile.getName().isBlank()) {
-            profile.setName(displayName(request.name(), request.email()));
+            profile.setName(userAccountMapper.displayName(request.name(), request.username(), request.email()));
         }
         if (profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) {
             profile.setAvatarUrl(blankToNull(request.avatarUrl()));
@@ -219,45 +193,7 @@ public class UserController {
         }
         preferences.save(preference);
 
-        return new UserDto(request.userId(), profile.getName(), request.email(), request.username(), Set.of(RoleType.USER), profile.getAvatarUrl());
-    }
-
-    private String displayName(String name, String email) {
-        if (name != null && !name.isBlank() && !name.equalsIgnoreCase(email)) {
-            return name;
-        }
-        int atIndex = email == null ? -1 : email.indexOf('@');
-        return atIndex > 0 ? email.substring(0, atIndex) : "User";
-    }
-
-    private Set<RoleType> parseRoles(String roles) {
-        if (roles == null || roles.isBlank()) {
-            return Set.of(RoleType.USER);
-        }
-        return java.util.Arrays.stream(roles.split(","))
-                .map(String::trim)
-                .filter(value -> !value.isBlank())
-                .map(RoleType::valueOf)
-                .collect(java.util.stream.Collectors.toSet());
-    }
-
-    private Set<RoleType> requestedRoles(Map<String, Object> request) {
-        Object roles = request.get("roles");
-        if (roles instanceof List<?> list) {
-            return list.stream()
-                    .filter(String.class::isInstance)
-                    .map(String.class::cast)
-                    .map(String::trim)
-                    .filter(value -> !value.isBlank())
-                    .map(String::toUpperCase)
-                    .map(RoleType::valueOf)
-                    .collect(java.util.stream.Collectors.toSet());
-        }
-        Object role = request.get("role");
-        if (role instanceof String value && !value.isBlank()) {
-            return Set.of(RoleType.valueOf(value.trim().toUpperCase()));
-        }
-        return Set.of(RoleType.USER);
+        return userAccountMapper.toDemoUserDto(profile, request.email(), request.username());
     }
 
     private String validTimezoneOrDefault(String timezone) {
@@ -292,10 +228,6 @@ public class UserController {
         return value == null || value.isBlank() ? null : value;
     }
 
-    private String firstNonBlank(String primary, String fallback) {
-        return primary == null || primary.isBlank() ? fallback : primary;
-    }
-
     private String uppercaseBlankToNull(String value) {
         String normalized = blankToNull(value);
         return normalized == null ? null : normalized.toUpperCase();
@@ -304,5 +236,14 @@ public class UserController {
     private String digitsOnly(String value) {
         String normalized = blankToNull(value);
         return normalized == null ? null : normalized.replaceAll("\\D", "");
+    }
+
+    private UserHeaderContextDto headerContext(UUID userId, String email, String name, String roles) {
+        return UserHeaderContextDto.builder()
+                .userId(userId)
+                .email(email)
+                .name(name)
+                .roles(roles)
+                .build();
     }
 }

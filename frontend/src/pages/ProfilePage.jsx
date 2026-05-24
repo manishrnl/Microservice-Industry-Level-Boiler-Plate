@@ -31,6 +31,7 @@ import {usePreferencesStore} from "../store/preferencesStore";
 import {getBrowserTimeZone} from "../utils/clientContext";
 import {readAvatarFile} from "../utils/imageUtils";
 import {unwrapApiData} from "../utils/responseUtils";
+import {displayUserName, mergeAccountIdentity, uppercaseDisplayName} from "../utils/userDisplay";
 
 const fallbackTimeZones = ["UTC", "Asia/Kolkata", "Asia/Calcutta", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Berlin", "Europe/Paris", "Asia/Dubai", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney"];
 const featuredTimeZones = ["Asia/Kolkata", "Asia/Calcutta", "UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Berlin", "Asia/Dubai", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney"];
@@ -56,7 +57,7 @@ const ProfilePage = () => {
     const clearAuth = useAuthStore((state) => state.clearAuth);
     const preferredTimezone = usePreferencesStore((state) => state.timezone);
     const setPreferredTimezone = usePreferencesStore((state) => state.setTimezone);
-    const [settings, setSettings] = useState({...emptySettings, name: displayName(user?.name, user?.email)});
+    const [settings, setSettings] = useState({...emptySettings, name: displayUserName(user?.name, user?.email, "")});
     const [passwords, setPasswords] = useState({currentPassword: "", newPassword: "", confirmPassword: ""});
     const [suspendForm, setSuspendForm] = useState({confirmation: "", days: 7});
     const [deleteConfirmation, setDeleteConfirmation] = useState("");
@@ -77,7 +78,7 @@ const ProfilePage = () => {
         mutationFn: async () => unwrapApiData((await apiClient.put(endpoints.users.settings, normalizeSettings(settings))).data),
         onSuccess: (saved) => {
             setSettings(settingsFromAccount(saved));
-            updateUser({name: saved.name, username: saved.username, avatarUrl: saved.avatarUrl});
+            updateUser({name: displayUserName(saved.name, saved.email), username: saved.username, avatarUrl: saved.avatarUrl, email: saved.email, roles: saved.roles});
             toast.success("Account settings saved");
         }
     });
@@ -121,7 +122,7 @@ const ProfilePage = () => {
     useEffect(() => {
         if (account.data) {
             setSettings(settingsFromAccount(account.data));
-            updateUser({name: account.data.name, username: account.data.username, avatarUrl: account.data.avatarUrl});
+            updateUser({name: displayUserName(account.data.name, account.data.email), username: account.data.username, avatarUrl: account.data.avatarUrl, email: account.data.email, roles: account.data.roles});
         }
     }, [account.data, updateUser]);
     useEffect(() => {
@@ -138,9 +139,10 @@ const ProfilePage = () => {
         ...featuredTimeZones,
         ...supportedTimeZones
     ].filter(Boolean))).sort((left, right) => left.localeCompare(right)), [browserTimezone, preferredTimezone, timezone]);
-    const activeProfile = account.data ?? user ?? {};
+    const activeProfile = mergeAccountIdentity(user, account.data);
     const roles = Array.isArray(activeProfile.roles) ? activeProfile.roles : user?.roles ?? [];
     const status = String(activeProfile.accountStatus ?? "ACTIVE");
+    const profileDisplayName = uppercaseDisplayName(settings.name || activeProfile.name, activeProfile.email, "Account holder");
 
     const updateSetting = (field) => (event) => setSettings((value) => ({...value, [field]: event.target.value}));
     const updatePassword = (field) => (event) => setPasswords((value) => ({...value, [field]: event.target.value}));
@@ -191,9 +193,9 @@ const ProfilePage = () => {
             <aside className="space-y-5">
                 <section className="rounded-md border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
                     <div className="flex items-center gap-4">
-                        <Avatar src={activeProfile?.avatarUrl} name={settings.name} email={activeProfile?.email} size="xl"/>
+                        <Avatar src={activeProfile?.avatarUrl} name={profileDisplayName} email={activeProfile?.email} size="xl"/>
                         <div className="min-w-0">
-                            <p className="truncate text-base font-semibold text-slate-950 dark:text-white">{settings.username || settings.name || "Account holder"}</p>
+                            <p className="truncate text-base font-semibold text-slate-950 dark:text-white">{profileDisplayName}</p>
                             <p className="mt-1 flex items-center gap-1.5 truncate text-sm text-slate-600 dark:text-slate-300">
                                 <Mail className="h-3.5 w-3.5 shrink-0"/>
                                 {activeProfile?.email}
@@ -416,12 +418,6 @@ const normalizeSettings = (settings) => ({
     postalCode: settings.postalCode.trim(),
     dateOfBirth: settings.dateOfBirth || null
 });
-const displayName = (name, email) => {
-    if (name && !name.includes("@")) {
-        return name;
-    }
-    return email?.split("@")[0] ?? "";
-};
 export {
     ProfilePage
 };

@@ -88,10 +88,12 @@ public class AuthBootstrapData implements ApplicationRunner {
     }
 
     private String normalizeEmail(String email) {
-        return email == null || email.isBlank() ? "manishrajrnl@zohomail.in" : email.trim().toLowerCase();
+        return email == null || email.isBlank() ? "platform@zohomail.in" :
+                email.trim().toLowerCase();
     }
 
     private String normalizeUsername(String username) {
-        return username == null || username.isBlank() ? "manish" : username.trim().toLowerCase();
+        return username == null || username.isBlank() ? "platform" :
+                username.trim().toLowerCase();
     }
 }

@@ -1,5 +1,6 @@
 package com.company.platform.payment;
 
+import com.company.platform.commons.dto.DemoUserRequestDto;
 import com.company.platform.payment.dto.PaymentConfirmationDto;
 import com.company.platform.payment.dto.PaymentDto;
 import com.company.platform.payment.dto.PaymentRequestDto;
@@ -43,5 +44,10 @@ class PaymentController {
     Map<String, Object> webhook(@RequestHeader(value = "Stripe-Signature", required = false) String signature,
                                 @RequestBody String payload) throws IOException {
         return paymentService.processWebhook(signature, payload);
+    }
+
+    @PostMapping("/internal/demo-data")
+    List<PaymentDto> seedDemoData(@RequestBody DemoUserRequestDto request) {
+        return paymentService.seedDemoData(request);
     }
 }

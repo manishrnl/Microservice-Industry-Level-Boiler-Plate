@@ -57,6 +57,10 @@ public class AuthMailService {
         delivery.enqueue(email, "New login to your platform account", templates.loginNotice());
     }
 
+    public void sendSuspiciousLoginWarning(String email, String ipAddress, String userAgent) {
+        delivery.enqueue(email, "Security warning for your platform account", templates.suspiciousLoginWarning(ipAddress, userAgent));
+    }
+
     public boolean verifySignupOtp(String email, String otp) {
         return verify(email, Purpose.SIGNUP, otp, true);
     }
@@ -112,7 +116,7 @@ public class AuthMailService {
     }
 
     private String key(String email, Purpose purpose) {
-        return purpose.name() + ":" + email.toLowerCase();
+        return purpose.name() + ":" + email.trim().toLowerCase();
     }
 
     private String otp() {

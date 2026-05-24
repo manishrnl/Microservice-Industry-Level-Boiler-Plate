@@ -58,7 +58,7 @@ const resolvePublicUrl = (configuredUrl, fallbackPort) => {
 };
 const configuredApiGatewayUrl = trimTrailingSlash(import.meta.env.VITE_API_GATEWAY_URL || "http://127.0.0.1:8080");
 const buildApiGatewayUrl = isLocalApiUrl(configuredApiGatewayUrl)
-    ? apiGatewayUrlFromBrowserHost()
+    ? ""
     : configuredApiGatewayUrl;
 const resolvedApiGatewayUrl = runtimeApiGatewayUrl() || buildApiGatewayUrl;
 const prometheusUrl = resolvePublicUrl(import.meta.env.VITE_PROMETHEUS_URL, "9090");

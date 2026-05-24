@@ -9,8 +9,6 @@ const endpoints = {
         logout: `${api}/api/v1/auth/logout`,
         refresh: `${api}/api/v1/auth/refresh`,
         me: `${api}/api/v1/auth/me`,
-        avatar: `${api}/api/v1/auth/me/avatar`,
-        settings: `${api}/api/v1/auth/me/settings`,
         password: `${api}/api/v1/auth/me/password`,
         suspend: `${api}/api/v1/auth/me/suspend`,
         deleteAccount: `${api}/api/v1/auth/me`,
@@ -30,6 +28,7 @@ const endpoints = {
         byId: (id) => `${api}/api/v1/users/${id}`,
         list: `${api}/api/v1/users`,
         role: (id) => `${api}/api/v1/users/${id}/role`,
+        settings: `${api}/api/v1/users/me/settings`,
         preferences: `${api}/api/v1/users/me/preferences`,
         avatar: `${api}/api/v1/users/me/avatar`
     },
@@ -70,6 +69,9 @@ const endpoints = {
     audit: {
         list: `${api}/api/v1/audit`,
         export: `${api}/api/v1/audit/export`
+    },
+    observability: {
+        logs: `${api}/api/v1/observability/logs`
     }
 };
 export {

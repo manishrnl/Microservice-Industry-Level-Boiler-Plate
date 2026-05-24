@@ -4,6 +4,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {apiClient} from "../api/axiosInstance";
 import {endpoints} from "../api/endpoints";
 import {PageWrapper} from "../components/common/PageWrapper";
+import {COMPANY_NAME} from "../components/layout/BrandMark";
 import {usePreferencesStore} from "../store/preferencesStore";
 import {formatMonth} from "../utils/dateUtils";
 import {asArray, unwrapApiData} from "../utils/responseUtils";
@@ -25,7 +26,7 @@ const PaymentsPage = () => {
                 amount: Number(amount),
                 currency,
                 method: "STRIPE",
-                description: "Microservice platform checkout"
+                description: `${COMPANY_NAME} checkout`
             });
             return unwrapApiData(response.data);
         },

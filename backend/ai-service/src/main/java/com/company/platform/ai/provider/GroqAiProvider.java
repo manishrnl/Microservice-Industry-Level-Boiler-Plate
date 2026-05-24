@@ -32,7 +32,13 @@ public class GroqAiProvider implements AiProvider {
 
     @Override
     public Mono<String> chat(ChatRequest request) {
-        Map<String, Object> body = Map.of("model", model, "messages", List.of(Map.of("role", "system", "content", request.systemPrompt() == null ? "You are a helpful assistant." : request.systemPrompt()), Map.of("role", "user", "content", request.message())));
+        List<Map<String, String>> messages = new java.util.ArrayList<>();
+        messages.add(Map.of("role", "system", "content", request.systemPrompt() == null ? "You are a helpful assistant." : request.systemPrompt()));
+        for (ChatRequest.ChatTurn turn : request.history()) {
+            messages.add(Map.of("role", turn.role(), "content", turn.content()));
+        }
+        messages.add(Map.of("role", "user", "content", request.message()));
+        Map<String, Object> body = Map.of("model", model, "messages", messages);
         return webClient.post()
                 .uri("/chat/completions")
                 .headers(headers -> headers.setBearerAuth(apiKey))

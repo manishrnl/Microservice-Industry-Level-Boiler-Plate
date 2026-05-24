@@ -8,6 +8,8 @@ import java.time.Duration;
 
 @Component
 public class AiProviderFactory {
+    private static final Duration PROVIDER_TIMEOUT = Duration.ofSeconds(10);
+
     private final GeminiAiProvider gemini;
     private final GroqAiProvider groq;
 
@@ -18,13 +20,13 @@ public class AiProviderFactory {
 
     public Mono<String> chat(ChatRequest request) {
         return gemini.chat(request)
-                .timeout(Duration.ofSeconds(25))
-                .onErrorResume(ex -> groq.chat(request).timeout(Duration.ofSeconds(25)));
+                .timeout(PROVIDER_TIMEOUT)
+                .onErrorResume(ex -> groq.chat(request).timeout(PROVIDER_TIMEOUT));
     }
 
     public Flux<String> chatStream(ChatRequest request) {
         return gemini.chatStream(request)
-                .timeout(Duration.ofSeconds(25))
-                .onErrorResume(ex -> groq.chatStream(request).timeout(Duration.ofSeconds(25)));
+                .timeout(PROVIDER_TIMEOUT)
+                .onErrorResume(ex -> groq.chatStream(request).timeout(PROVIDER_TIMEOUT));
     }
 }

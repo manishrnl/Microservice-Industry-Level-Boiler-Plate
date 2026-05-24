@@ -56,16 +56,28 @@ public class AuthController {
         return authService.me(jwt);
     }
 
-    @PutMapping("/me")
-    public UserDto updateProfile(@Valid @RequestBody ProfileUpdateRequestDto request,
-                                 @AuthenticationPrincipal Jwt jwt) {
-        return authService.updateProfile(request, jwt);
+    @PutMapping("/me/password")
+    public ActionResponseDto changePassword(@Valid @RequestBody ChangePasswordRequestDto request,
+                                            @AuthenticationPrincipal Jwt jwt) {
+        return authService.changePassword(request, jwt);
     }
 
-    @PutMapping("/me/avatar")
-    public UserDto updateAvatar(@RequestBody AvatarUpdateRequestDto request,
-                                @AuthenticationPrincipal Jwt jwt) {
-        return authService.updateAvatar(request, jwt);
+    @PostMapping("/me/suspend")
+    public ActionResponseDto suspendAccount(@Valid @RequestBody AccountActionRequestDto request,
+                                            @AuthenticationPrincipal Jwt jwt,
+                                            HttpServletResponse response) {
+        ActionResponseDto result = authService.suspendAccount(request, jwt);
+        response.addHeader(HttpHeaders.SET_COOKIE, authService.clearRefreshCookie());
+        return result;
+    }
+
+    @DeleteMapping("/me")
+    public ActionResponseDto deleteAccount(@Valid @RequestBody AccountActionRequestDto request,
+                                           @AuthenticationPrincipal Jwt jwt,
+                                           HttpServletResponse response) {
+        ActionResponseDto result = authService.deleteAccount(request, jwt);
+        response.addHeader(HttpHeaders.SET_COOKIE, authService.clearRefreshCookie());
+        return result;
     }
 
     @PostMapping("/verify-email")

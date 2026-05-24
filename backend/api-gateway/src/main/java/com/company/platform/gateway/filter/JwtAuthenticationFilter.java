@@ -1,5 +1,6 @@
 package com.company.platform.gateway.filter;
 
+import com.company.platform.gateway.log.GatewayLogService;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -39,9 +40,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/v3/api-docs"
     );
     private final ReactiveJwtDecoder jwtDecoder;
+    private final GatewayLogService gatewayLogs;
 
-    public JwtAuthenticationFilter(ReactiveJwtDecoder jwtDecoder) {
+    public JwtAuthenticationFilter(ReactiveJwtDecoder jwtDecoder, GatewayLogService gatewayLogs) {
         this.jwtDecoder = jwtDecoder;
+        this.gatewayLogs = gatewayLogs;
     }
 
     @Override
@@ -74,6 +77,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String detail) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        gatewayLogs.recordSecurity(exchange.getRequest().getPath().value(), detail, HttpStatus.UNAUTHORIZED.value());
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_PROBLEM_JSON);
         String body = "{\"type\":\"https://httpstatuses.com/401\",\"title\":\"Unauthorized\",\"status\":401,\"detail\":\"" + detail + "\",\"instance\":\"" + exchange.getRequest().getPath().value() + "\",\"timestamp\":\"" + LocalDateTime.now() + "\"}";
         DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));

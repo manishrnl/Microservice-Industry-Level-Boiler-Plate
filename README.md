@@ -25,6 +25,7 @@ This repository is designed as a reusable foundation: clone it, configure the en
 - [Deployment Notes](#deployment-notes)
 - [Useful Commands](#useful-commands)
 - [Troubleshooting](#troubleshooting)
+- [Image Gallery](#image-gallery)
 
 ## What This Project Includes
 
@@ -105,7 +106,7 @@ The browser talks to the backend through the API Gateway. The gateway routes `/a
 | Backend | Java 21, Spring Boot 3.4.5, Spring Cloud 2024.0.1, Maven |
 | Gateway | Spring Cloud Gateway, JWT validation, CORS, filters, rate-limit support |
 | Auth | Spring Security, OAuth2, JWT, refresh token cookies, email verification |
-| Data | PostgreSQL, Flyway, Spring Data JPA |
+| Data | PostgreSQL, Hibernate DDL, Spring Data JPA |
 | Cache / Sessions | Redis |
 | Messaging | Kafka KRaft |
 | Storage | MinIO |
@@ -526,9 +527,9 @@ backend/infrastructure/grafana/dashboards/
 
 Every backend service exposes Actuator health and Prometheus metrics.
 
-## Database And Migrations
+## Database Schema
 
-PostgreSQL databases are created by:
+Local PostgreSQL databases are created by:
 
 ```text
 backend/infrastructure/postgres/init.sql
@@ -544,17 +545,11 @@ Created databases:
 - `ai_db`
 - `audit_db`
 
-Flyway migrations currently exist for:
-
-- `backend/auth-service/src/main/resources/db/migration`
-- `backend/payment-service/src/main/resources/db/migration`
-- `backend/ai-service/src/main/resources/db/migration`
-
-The root `.env.example` enables Flyway with:
+Tables are created from the JPA entities by Hibernate. For a fresh reset, use:
 
 ```text
-FLYWAY_ENABLED=true
-FLYWAY_VALIDATE_ON_MIGRATE=true
+DATABASE_AUTO_DDL=create
+FLYWAY_ENABLED=false
 ```
 
 ## Deployment Notes
@@ -798,3 +793,34 @@ Additional backend docs are available here:
 ## Project Summary
 
 Microservice Industry Platform is a full-stack starter kit for serious application development. It gives you a working frontend, a service-oriented backend, production-style infrastructure, and practical deployment files so you can focus on building business features instead of assembling the platform from scratch.
+
+
+## Image Gallery
+- this is a images section of my webpages
+
+
+
+
+## 🖼️ Preview
+
+| Dashboard Screen                                                | Files Screen                                               | Observability Screen                                               | 
+|-------------------------------------------------------------|----------------------------------------------------------------------|----------------------------------------------------------------------|
+| <img src="./frontend/public/images/Dashboard.png"  width="250" height="200"/> | <img src="./frontend/public/images/Files.png"  width="250" height="200"/> | <img src="./frontend/public/images/Observability.png"  width="250" height="200"/> | 
+
+| Signup Screen                                                | View Faculty Member                                           | Admin Dashbord Screen                                                |
+|--------------------------------------------------------------|---------------------------------------------------------------|----------------------------------------------------------------------|
+| <img src="./frontend/public/images/Login.png"  width="250" height="200"/> | <img src="./frontend/public/images/Signup.png"  width="250" height="200"/> | <img src="./frontend/public/images/Otp.png"  width="250" height="200"/> |
+
+| View Attendance Screen                                               | Student Dashboard                                                       | Staffs Dashboard Screen                                               |
+|----------------------------------------------------------------------|-------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| <img src="./frontend/public/images/User.png"  width="250" height="200"/> | <img src="ScreenShot/studentsDashboard.png"  width="250" height="200"/> | <img src="ScreenShot/staffsDashboard.png"  width="250" height="200"/> |
+
+| Salary Distribution Screen                                               | Results                                                      | View Profile Screen                                               |
+|--------------------------------------------------------------------------|--------------------------------------------------------------|-------------------------------------------------------------------|
+| <img src="ScreenShot/salaryDistribution.png"  width="250" height="200"/> | <img src="ScreenShot/result.png"  width="250" height="200"/> | <img src="ScreenShot/profileView.png"  width="250" height="200"/> |
+
+| Notifications Screen                                                | Mark Attendance Screen                                               | Students Fees Screen                                       |
+|---------------------------------------------------------------------|----------------------------------------------------------------------|------------------------------------------------------------|
+| <img src="ScreenShot/notifications.png"  width="250" height="200"/> | <img src="ScreenShot/markAttendance.png"  width="250" height="200"/> | <img src="ScreenShot/fees.png"  width="250" height="200"/> |
+
+---

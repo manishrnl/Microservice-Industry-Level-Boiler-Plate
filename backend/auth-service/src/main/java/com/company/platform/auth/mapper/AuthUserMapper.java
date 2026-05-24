@@ -18,7 +18,12 @@ public class AuthUserMapper {
     }
 
     public UserDto toDto(User user, Set<RoleType> roles) {
-        return toDto(user.getId(), user.getFullName(), user.getEmail(), roles, user.getAvatarUrl());
+        String name = user.getUsername() == null || user.getUsername().isBlank()
+                ? fallbackName(user.getEmail())
+                : user.getUsername();
+        UserDto dto = toDto(user.getId(), name, user.getEmail(), roles, null);
+        dto.setUsername(user.getUsername());
+        return dto;
     }
 
     public UserDto toDto(UUID userId, String name, String email, Set<RoleType> roles, String avatarUrl) {
@@ -50,5 +55,10 @@ public class AuthUserMapper {
         public String getAvatarUrl() {
             return avatarUrl;
         }
+    }
+
+    private String fallbackName(String email) {
+        int atIndex = email == null ? -1 : email.indexOf('@');
+        return atIndex > 0 ? email.substring(0, atIndex) : "User";
     }
 }

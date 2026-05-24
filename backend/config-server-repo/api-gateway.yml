@@ -5,6 +5,7 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD}
       ssl:
         enabled: ${REDIS_SSL_ENABLED:false}
@@ -21,8 +22,11 @@ spring:
               - http://localhost:5174
               - http://127.0.0.1:5173
               - http://127.0.0.1:5174
+              - http://10.137.41.201:5173
+              - http://10.137.41.201:[*]
               - http://*:5173
               - http://*:5174
+              - http://*:[*]
             allowed-methods:
               - GET
               - POST

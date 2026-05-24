@@ -1,4 +1,4 @@
-import {ArrowRight, ImagePlus, LoaderCircle, Mail, UserRound} from "lucide-react";
+import {ArrowRight, AtSign, ImagePlus, LoaderCircle, Mail, UserRound} from "lucide-react";
 import {useState} from "react";
 import {useForm} from "react-hook-form";
 import {Link, useNavigate} from "react-router-dom";
@@ -99,6 +99,22 @@ const SignupPage = () => {
                 className={inputClassName}
                 placeholder="Your name"
                 {...register("fullName", {required: true})}
+            />
+          </span>
+            </label>
+            <label className="mb-4 block">
+                    <span
+                        className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                    >Username</span>
+                <span className="relative block">
+            <AtSign
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            />
+            <input
+                className={inputClassName}
+                placeholder="Choose a username"
+                autoComplete="username"
+                {...register("username")}
             />
           </span>
             </label>

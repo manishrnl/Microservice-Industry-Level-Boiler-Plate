@@ -10,6 +10,7 @@ ARG MODULE=api-gateway
 
 # Copy root pom
 COPY pom.xml .
+COPY .mvn ./.mvn
 COPY README.md /tmp/README.md
 
 # Copy backend source
@@ -20,7 +21,11 @@ RUN --mount=type=cache,target=/root/.m2 set -eux; \
     MODULE_PATH="${MODULE#backend/}"; \
     test -n "$MODULE_PATH"; \
     test -f "backend/${MODULE_PATH}/pom.xml"; \
-    mvn clean package -DskipTests -pl "backend/${MODULE_PATH}" -am; \
+    for attempt in 1 2 3 4 5; do \
+        mvn clean package -DskipTests -pl "backend/${MODULE_PATH}" -am && break; \
+        if [ "$attempt" = "5" ]; then exit 1; fi; \
+        sleep $((attempt * 15)); \
+    done; \
     cp "backend/${MODULE_PATH}"/target/*.jar /tmp/app.jar
 
 # =========================

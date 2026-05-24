@@ -21,6 +21,7 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
+      EUREKA_SERVER_PEER_NODE_READ_TIMEOUT_MS: 30000
     ports:
       - "${CONFIG_SERVER_HOST_PORT:-8888}:8888"
     depends_on:
@@ -30,7 +31,7 @@ services:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8888/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 30
     restart: unless-stopped
     networks: [backend-net]
 
@@ -41,9 +42,8 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/discovery-server
+        MODULE: discovery-server
     environment:
       EUREKA_USER: ${EUREKA_USER}
       EUREKA_PASSWORD: ${EUREKA_PASSWORD}
@@ -52,13 +52,16 @@ services:
       EUREKA_PEERS: ${EUREKA_PEERS}
       EUREKA_REGISTER_SELF: ${EUREKA_REGISTER_SELF}
       EUREKA_FETCH_REGISTRY: ${EUREKA_FETCH_REGISTRY}
+      EUREKA_SERVER_PEER_NODE_READ_TIMEOUT_MS: 30000
+      EUREKA_SERVER_PEER_NODE_CONNECT_TIMEOUT_MS: 10000
+      EUREKA_SERVER_RESPONSE_CACHE_UPDATE_INTERVAL_MS: 30000
     ports:
       - "${DISCOVERY_SERVER_HOST_PORT:-8761}:8761"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://${EUREKA_USER}:${EUREKA_PASSWORD}@localhost:8761/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 30
     restart: unless-stopped
     networks: [backend-net]
 
@@ -69,9 +72,8 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/api-gateway
+        MODULE: api-gateway
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
@@ -90,6 +92,8 @@ services:
       config-server:
         condition: service_healthy
       discovery-server:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       auth-service:
         condition: service_started
@@ -120,19 +124,19 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/auth-service
+        MODULE: auth-service
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL}
+      AUTH_DATABASE_USERNAME: ${AUTH_DATABASE_USERNAME}
+      AUTH_DATABASE_PASSWORD: ${AUTH_DATABASE_PASSWORD}
+      DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL}
-      AUTH_DATABASE_USERNAME: ${AUTH_DATABASE_USERNAME}
-      AUTH_DATABASE_PASSWORD: ${AUTH_DATABASE_PASSWORD}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -142,6 +146,12 @@ services:
       JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES}
       JWT_REFRESH_TOKEN_DAYS: ${JWT_REFRESH_TOKEN_DAYS}
       BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:8082}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:8083}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_URL:-http://payment-service:8084}
+      FILE_SERVICE_URL: ${FILE_SERVICE_URL:-http://file-service:8085}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8086}
+      AUDIT_SERVICE_URL: ${AUDIT_SERVICE_URL:-http://audit-service:8087}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
       GOOGLE_AUTHORIZATION_URI: ${GOOGLE_AUTHORIZATION_URI}
@@ -176,11 +186,15 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 30
+      retries: 45
     restart: unless-stopped
     networks: [backend-net]
 
@@ -191,19 +205,19 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/user-service
+        MODULE: user-service
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
+      USER_DATABASE_URL: ${USER_DATABASE_URL}
+      USER_DATABASE_USERNAME: ${USER_DATABASE_USERNAME}
+      USER_DATABASE_PASSWORD: ${USER_DATABASE_PASSWORD}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      USER_DATABASE_URL: ${USER_DATABASE_URL}
-      USER_DATABASE_USERNAME: ${USER_DATABASE_USERNAME}
-      USER_DATABASE_PASSWORD: ${USER_DATABASE_PASSWORD}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -216,6 +230,12 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-topics:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health || exit 1"]
       interval: 10s
@@ -231,11 +251,11 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/notification-service
+        MODULE: notification-service
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
@@ -254,6 +274,10 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+      kafka-topics:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8083/actuator/health || exit 1"]
       interval: 10s
@@ -269,11 +293,11 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/payment-service
+        MODULE: payment-service
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
@@ -295,6 +319,10 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+      kafka-topics:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8084/actuator/health || exit 1"]
       interval: 10s
@@ -310,11 +338,11 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/file-service
+        MODULE: file-service
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
@@ -335,6 +363,8 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
       minio:
         condition: service_healthy
     healthcheck:
@@ -352,11 +382,11 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/ai-service
+        MODULE: ai-service
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
@@ -385,6 +415,10 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8086/actuator/health || exit 1"]
       interval: 10s
@@ -400,11 +434,11 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        MODULE: backend/audit-service
+        MODULE: audit-service
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
@@ -422,6 +456,10 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+      kafka-topics:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8087/actuator/health || exit 1"]
       interval: 10s
@@ -439,6 +477,7 @@ services:
     command: sh -c "test -d node_modules/.bin || npm install --prefer-offline --no-audit && npm run dev -- --host 0.0.0.0"
     environment:
       VITE_OAUTH_PROVIDERS: ${VITE_OAUTH_PROVIDERS}
+      VITE_DEV_PROXY_TARGET: ${VITE_DEV_PROXY_TARGET:-http://api-gateway:8080}
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
@@ -451,9 +490,8 @@ services:
     networks: [frontend-net]
 
   postgres:
-    profiles: ["local-infra"]
     image: postgres:16.4-alpine
-    pull_policy: never
+    pull_policy: missing
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -468,9 +506,8 @@ services:
     networks: [backend-net]
 
   redis:
-    profiles: ["local-infra"]
     image: redis:7.4.2-alpine
-    pull_policy: never
+    pull_policy: missing
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:
       - redis-data:/data
@@ -482,9 +519,8 @@ services:
     networks: [backend-net]
 
   kafka:
-    profiles: ["local-infra"]
     image: apache/kafka:3.7.0
-    pull_policy: never
+    pull_policy: missing
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -503,9 +539,8 @@ services:
     networks: [backend-net]
 
   kafka-topics:
-    profiles: ["local-infra"]
     image: apache/kafka:3.7.0
-    pull_policy: never
+    pull_policy: missing
     command: >
       sh -c "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic auth.events --partitions 3 --replication-factor 1 &&
              /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic user.events --partitions 3 --replication-factor 1 &&
@@ -520,7 +555,7 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2025-04-22T22-12-26Z
-    pull_policy: never
+    pull_policy: missing
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -538,14 +573,15 @@ services:
 
   mailhog:
     image: mailhog/mailhog:v1.0.1
-    pull_policy: never
+    pull_policy: missing
     ports:
+      - "1025:1025"
       - "8025:8025"
     networks: [backend-net]
 
   zipkin:
-    image: openzipkin/zipkin:local-d17e856dcbba
-    pull_policy: never
+    image: openzipkin/zipkin:2.27.0
+    pull_policy: missing
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:9411/health || exit 1"]
       interval: 15s
@@ -573,8 +609,8 @@ services:
     networks: [backend-net]
 
   prometheus:
-    image: prom/prometheus:local-e4254400b856
-    pull_policy: never
+    image: prom/prometheus:v3.11.3
+    pull_policy: missing
     volumes:
       - ./backend/infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks: [backend-net]
@@ -598,8 +634,8 @@ services:
     networks: [backend-net]
 
   grafana:
-    image: grafana/grafana:local-2d1f9ae67c17
-    pull_policy: never
+    image: grafana/grafana:13.0.1
+    pull_policy: missing
     environment:
       GF_SECURITY_ADMIN_USER: ${OBSERVABILITY_USERNAME}
       GF_SECURITY_ADMIN_PASSWORD: ${OBSERVABILITY_PASSWORD}

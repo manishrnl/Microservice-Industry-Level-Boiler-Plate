@@ -11,17 +11,28 @@ const inputClassName = "h-12 w-full rounded-md border border-slate-200 bg-slate-
 const ForgotPasswordPage = () => {
     const [otpSent, setOtpSent] = useState(false);
     const [resetCompleted, setResetCompleted] = useState(false);
+    const [error, setError] = useState("");
+    const [notice, setNotice] = useState("");
     const navigate = useNavigate();
     const {register, handleSubmit, watch, formState} = useForm();
     const submit = handleSubmit(async (values) => {
-        if (!otpSent) {
-            await apiClient.post(endpoints.auth.forgotPassword, {email: values.email});
-            setOtpSent(true);
-            return;
+        setError("");
+        setNotice("");
+        try {
+            const email = values.email?.trim();
+            if (!otpSent) {
+                await apiClient.post(endpoints.auth.forgotPassword, {email});
+                setOtpSent(true);
+                setNotice("Reset OTP sent. Check MailHog or your configured inbox.");
+                return;
+            }
+            await apiClient.post(endpoints.auth.resetPassword, {...values, email});
+            setResetCompleted(true);
+            window.setTimeout(() => navigate("/login", {replace: true}), 1600);
+        } catch (requestError) {
+            const detail = requestError?.response?.data?.detail ?? requestError?.response?.data?.message;
+            setError(detail || "Could not reset password. Please try again.");
         }
-        await apiClient.post(endpoints.auth.resetPassword, values);
-        setResetCompleted(true);
-        window.setTimeout(() => navigate("/login", {replace: true}), 1600);
     });
     return <AuthShell
         title="Reset password"
@@ -79,6 +90,8 @@ const ForgotPasswordPage = () => {
                 {formState.errors.confirmPassword &&
                     <p className="-mt-1 mb-3 text-sm text-red-600 dark:text-red-300">{formState.errors.confirmPassword.message}</p>}
             </>}
+            {error &&
+                <p className="-mt-1 mb-3 text-sm font-medium text-red-600 dark:text-red-300">{error}</p>}
             <button
                 disabled={formState.isSubmitting}
                 className="group flex h-12 w-full items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white shadow-lg shadow-slate-950/15 transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-teal-500/20 disabled:cursor-wait disabled:opacity-80 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
@@ -90,8 +103,7 @@ const ForgotPasswordPage = () => {
                     />}
             </button>
             {otpSent && !resetCompleted &&
-                <p className="mt-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">Reset
-                    OTP sent.</p>}
+                <p className="mt-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">{notice || "Reset OTP sent."}</p>}
             {resetCompleted &&
                 <p className="mt-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">Password
                     changed successfully. Redirecting to login...</p>}

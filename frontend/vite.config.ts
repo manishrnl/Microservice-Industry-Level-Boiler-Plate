@@ -14,6 +14,7 @@ export default defineConfig(({mode}) => {
         return configuredUrl ?? defaultApiGatewayUrl;
     };
     const apiGatewayUrl = resolveApiGatewayUrl();
+    const proxyTarget = normalizeUrl(firstValue(process.env.VITE_DEV_PROXY_TARGET, frontendEnv.VITE_DEV_PROXY_TARGET, rootEnv.VITE_DEV_PROXY_TARGET)) ?? apiGatewayUrl;
     const frontendPublicUrl = normalizeUrl(firstValue(process.env.VITE_FRONTEND_PUBLIC_URL, frontendEnv.VITE_FRONTEND_PUBLIC_URL, rootEnv.VITE_FRONTEND_PUBLIC_URL, process.env.FRONTEND_PUBLIC_URL, rootEnv.FRONTEND_PUBLIC_URL)) ?? defaultFrontendPublicUrl;
     const appEnv = firstValue(process.env.VITE_APP_ENV, frontendEnv.VITE_APP_ENV, rootEnv.VITE_APP_ENV) ?? mode;
     const prometheusUrl = normalizeUrl(firstValue(process.env.VITE_PROMETHEUS_URL, frontendEnv.VITE_PROMETHEUS_URL, rootEnv.VITE_PROMETHEUS_URL, process.env.PROMETHEUS_URL, rootEnv.PROMETHEUS_URL));
@@ -55,7 +56,19 @@ export default defineConfig(({mode}) => {
         },
         server: {
             port: 5173,
-            strictPort: true
+            strictPort: true,
+            proxy: {
+                "/api": {
+                    target: proxyTarget,
+                    changeOrigin: true,
+                    secure: false
+                },
+                "/actuator": {
+                    target: proxyTarget,
+                    changeOrigin: true,
+                    secure: false
+                }
+            }
         }
     };
 });

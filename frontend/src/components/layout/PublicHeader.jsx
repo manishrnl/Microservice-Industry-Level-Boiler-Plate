@@ -1,8 +1,9 @@
-import {Menu, Network, X} from "lucide-react";
+import {Menu, X} from "lucide-react";
 import {useState} from "react";
 import {Link, NavLink} from "react-router-dom";
 import {ThemeToggle} from "../common/ThemeToggle";
 import {useAuthStore} from "../../store/authStore";
+import {BrandMark} from "./BrandMark";
 
 const links = [
     {label: "Architecture", href: "/#architecture"},
@@ -24,15 +25,7 @@ const PublicHeader = () => {
 
     return <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-            <Link to="/" onClick={scrollHomeTop} className="flex min-w-0 items-center gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-slate-950 text-white shadow-sm dark:bg-teal-300 dark:text-slate-950">
-                    <Network className="h-5 w-5"/>
-                </span>
-                <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-slate-950 dark:text-white">Microservice Template</span>
-                    <span className="block truncate text-xs font-medium text-slate-500 dark:text-slate-400">Production-grade Java platform</span>
-                </span>
-            </Link>
+            <BrandMark to="/" onClick={scrollHomeTop}/>
 
             <nav className="hidden items-center gap-1 md:flex">
                 {links.map((item) => <a

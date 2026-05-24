@@ -34,7 +34,7 @@ const LoginPage = () => {
     const [resendRemainingSeconds, setResendRemainingSeconds] = useState(() => secondsUntil(resendAvailableAt));
     const {register, handleSubmit, getValues, formState} = useForm({
         defaultValues: {
-            email: location.state?.email ?? "",
+            identifier: location.state?.email ?? "",
             otp: ""
         }
     });
@@ -76,7 +76,7 @@ const LoginPage = () => {
         try {
             if (verificationRequired) {
                 await apiClient.post(endpoints.auth.verifyEmail, {
-                    email: values.email,
+                    email: values.identifier,
                     otp: values.otp
                 });
                 setVerificationRequired(false);
@@ -86,7 +86,9 @@ const LoginPage = () => {
                 return;
             }
             const response = await apiClient.post(endpoints.auth.login, {
-                ...values,
+                identifier: values.identifier,
+                email: values.identifier,
+                password: values.password,
                 deviceId: getDeviceId()
             });
             const token = unwrapApiData(response.data).accessToken;
@@ -115,7 +117,7 @@ const LoginPage = () => {
             const needsVerification = status === 403 && String(detail ?? "").toLowerCase().includes("verified");
             if (needsVerification) {
                 setVerificationRequired(true);
-                setVerificationEmail(values.email);
+                setVerificationEmail(values.identifier);
                 startResendWindow();
                 setLoginNotice("Enter the OTP sent to your email. You can request a new one after 10 minutes.");
                 return;
@@ -137,16 +139,17 @@ const LoginPage = () => {
             <label className="mb-4 block">
                     <span
                         className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200"
-                    >Email</span>
+                    >Email or username</span>
                 <span className="relative block">
             <Mail
                 className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
             />
             <input
                 className={inputClassName}
-                placeholder="you@company.com"
-                type="email"
-                {...register("email", {required: true})}
+                placeholder="you@company.com or username"
+                type="text"
+                autoComplete="username"
+                {...register("identifier", {required: true})}
             />
           </span>
             </label>
@@ -193,7 +196,7 @@ const LoginPage = () => {
                         setLoginNotice(`Resend available in ${formatResendTime(resendRemainingSeconds)}.`);
                         return;
                     }
-                    const email = verificationEmail || getValues("email");
+                    const email = verificationEmail || getValues("identifier");
                     if (!email) {
                         setLoginError("Enter your email first.");
                         return;

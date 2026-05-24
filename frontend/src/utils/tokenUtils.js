@@ -30,6 +30,7 @@ const authUserFromToken = (token) => {
     return {
         userId: payload.sub,
         name: payload.name || displayName(payload.email),
+        username: payload.username || "",
         email: payload.email,
         roles: normalizeRoles(payload.roles),
         avatarUrl: null

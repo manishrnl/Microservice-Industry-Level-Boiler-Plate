@@ -2,8 +2,11 @@ server:
   port: ${SERVER_PORT:${PORT:8087}}
 spring:
   datasource:
+    driver-class-name: ${HIBERNATE_DRIVER_NAME:org.postgresql.Driver}
     url: ${AUDIT_DATABASE_URL}
     username: ${AUDIT_DATABASE_USERNAME}
     password: ${AUDIT_DATABASE_PASSWORD}
+  jpa:
+    open-in-view: false
 audit:
   retention-days: ${AUDIT_RETENTION_DAYS}

@@ -1,4 +1,5 @@
 import {
+    AtSign,
     BadgeCheck,
     CalendarDays,
     ChevronDown,
@@ -36,6 +37,7 @@ const featuredTimeZones = ["Asia/Kolkata", "Asia/Calcutta", "UTC", "America/New_
 const supportedTimeZones = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : fallbackTimeZones;
 const emptySettings = {
     name: "",
+    username: "",
     aadhaarNumber: "",
     panNumber: "",
     phoneNumber: "",
@@ -65,22 +67,22 @@ const ProfilePage = () => {
 
     const account = useQuery({
         queryKey: ["account-settings"],
-        queryFn: async () => unwrapApiData((await apiClient.get(endpoints.auth.settings)).data)
+        queryFn: async () => unwrapApiData((await apiClient.get(endpoints.users.settings)).data)
     });
     const preferences = useQuery({
         queryKey: ["preferences"],
         queryFn: async () => unwrapApiData((await apiClient.get(endpoints.users.preferences)).data)
     });
     const saveSettings = useMutation({
-        mutationFn: async () => unwrapApiData((await apiClient.put(endpoints.auth.settings, normalizeSettings(settings))).data),
+        mutationFn: async () => unwrapApiData((await apiClient.put(endpoints.users.settings, normalizeSettings(settings))).data),
         onSuccess: (saved) => {
             setSettings(settingsFromAccount(saved));
-            updateUser({name: saved.name, avatarUrl: saved.avatarUrl});
+            updateUser({name: saved.name, username: saved.username, avatarUrl: saved.avatarUrl});
             toast.success("Account settings saved");
         }
     });
     const saveAvatar = useMutation({
-        mutationFn: async (avatarUrl) => unwrapApiData((await apiClient.put(endpoints.auth.avatar, {avatarUrl})).data),
+        mutationFn: async (avatarUrl) => unwrapApiData((await apiClient.put(endpoints.users.avatar, {avatarUrl})).data),
         onSuccess: (saved) => {
             updateUser(saved);
             account.refetch();
@@ -119,7 +121,7 @@ const ProfilePage = () => {
     useEffect(() => {
         if (account.data) {
             setSettings(settingsFromAccount(account.data));
-            updateUser({name: account.data.name, avatarUrl: account.data.avatarUrl});
+            updateUser({name: account.data.name, username: account.data.username, avatarUrl: account.data.avatarUrl});
         }
     }, [account.data, updateUser]);
     useEffect(() => {
@@ -167,7 +169,7 @@ const ProfilePage = () => {
                     <div className="flex items-center gap-4">
                         <Avatar src={activeProfile?.avatarUrl} name={settings.name} email={activeProfile?.email} size="xl"/>
                         <div className="min-w-0">
-                            <p className="truncate text-base font-semibold text-slate-950 dark:text-white">{settings.name || "Account holder"}</p>
+                            <p className="truncate text-base font-semibold text-slate-950 dark:text-white">{settings.username || settings.name || "Account holder"}</p>
                             <p className="mt-1 flex items-center gap-1.5 truncate text-sm text-slate-600 dark:text-slate-300">
                                 <Mail className="h-3.5 w-3.5 shrink-0"/>
                                 {activeProfile?.email}
@@ -241,6 +243,7 @@ const ProfilePage = () => {
                 >
                     <div className="mt-5 grid gap-4 md:grid-cols-2">
                         <Field label="Full name" Icon={UserRound} value={settings.name} onChange={updateSetting("name")}/>
+                        <Field label="Username" Icon={AtSign} value={settings.username} onChange={updateSetting("username")} placeholder="your_username"/>
                         <Field label="Phone number" Icon={Phone} value={settings.phoneNumber} onChange={updateSetting("phoneNumber")} placeholder="+91 98765 43210"/>
                         <Field label="Aadhaar number" Icon={IdCard} value={settings.aadhaarNumber} onChange={updateSetting("aadhaarNumber")} inputMode="numeric" maxLength={12} placeholder="12 digits"/>
                         <Field label="PAN number" Icon={CreditCard} value={settings.panNumber} onChange={(event) => setSettings((value) => ({...value, panNumber: event.target.value.toUpperCase()}))} maxLength={10} placeholder="ABCDE1234F"/>
@@ -369,6 +372,7 @@ const StatusPill = ({label, Icon}) => <span className="inline-flex min-h-9 items
 const settingsFromAccount = (account = {}) => ({
     ...emptySettings,
     name: account.name ?? "",
+    username: account.username ?? "",
     aadhaarNumber: account.aadhaarNumber ?? "",
     panNumber: account.panNumber ?? "",
     phoneNumber: account.phoneNumber ?? "",
@@ -381,8 +385,12 @@ const settingsFromAccount = (account = {}) => ({
 });
 const normalizeSettings = (settings) => ({
     ...settings,
+    name: settings.name.trim(),
+    username: settings.username.trim().toLowerCase(),
     aadhaarNumber: settings.aadhaarNumber.replace(/\D/g, ""),
-    panNumber: settings.panNumber.toUpperCase(),
+    panNumber: settings.panNumber.trim().toUpperCase(),
+    phoneNumber: settings.phoneNumber.trim(),
+    postalCode: settings.postalCode.trim(),
     dateOfBirth: settings.dateOfBirth || null
 });
 const displayName = (name, email) => {

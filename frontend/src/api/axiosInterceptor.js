@@ -54,7 +54,7 @@ const apiActivityFor = (config) => {
         return activity("Signing you in", "Verifying credentials and opening a fresh account session.");
     }
     if (path === "/api/v1/auth/signup") {
-        return activity("Creating account", "Saving your profile, role, and login record in the auth database.");
+        return activity("Creating account", "Saving login credentials and role records in the auth database.");
     }
     if (path === "/api/v1/auth/refresh") {
         return activity("Refreshing secure session", "Checking the refresh cookie and issuing a new access token.");
@@ -68,13 +68,13 @@ const apiActivityFor = (config) => {
     if (path === "/api/v1/auth/me" && method === "PUT") {
         return activity("Saving profile", "Updating your account name and profile details.");
     }
-    if (path === "/api/v1/auth/me/avatar") {
+    if (path === "/api/v1/users/me/avatar") {
         return activity("Saving profile avatar", "Updating the avatar URL stored with your account.");
     }
-    if (path === "/api/v1/auth/me/settings" && method === "GET") {
+    if (path === "/api/v1/users/me/settings" && method === "GET") {
         return activity("Loading account settings", "Reading identity, KYC, contact, and account status details.");
     }
-    if (path === "/api/v1/auth/me/settings" && method === "PUT") {
+    if (path === "/api/v1/users/me/settings" && method === "PUT") {
         return activity("Saving account settings", "Updating profile, Aadhaar, PAN, contact, and address records.");
     }
     if (path === "/api/v1/auth/me/password") {

@@ -1,28 +1,51 @@
 import {ChevronDown, History, LogOut, RadioTower, Users} from "lucide-react";
 import {NavLink, useLocation, useNavigate} from "react-router-dom";
-import {useState} from "react";
+import {useEffect, useState} from "react";
+import {useQuery} from "@tanstack/react-query";
+import {apiClient} from "../../api/axiosInstance";
+import {endpoints} from "../../api/endpoints";
 import {ThemeToggle} from "../common/ThemeToggle";
 import {Avatar} from "../common/Avatar";
 import {NotificationBell} from "../notifications/NotificationBell";
 import {useAuthStore} from "../../store/authStore";
 import {usePermission} from "../../hooks/usePermission";
+import {unwrapApiData} from "../../utils/responseUtils";
 import {ProfileMenu} from "./ProfileMenu";
 import {mainLinks} from "./Sidebar";
+import {BrandMark} from "./BrandMark";
 
 const Topbar = () => {
     const user = useAuthStore((state) => state.user);
+    const updateUser = useAuthStore((state) => state.updateUser);
     const logout = useAuthStore((state) => state.logout);
     const [profileOpen, setProfileOpen] = useState(false);
     const [closedMenu, setClosedMenu] = useState("");
     const {isAdmin} = usePermission();
     const navigate = useNavigate();
     const location = useLocation();
+    const accountSettings = useQuery({
+        queryKey: ["account-settings"],
+        enabled: Boolean(user?.userId || user?.email) && (!user?.avatarUrl || !user?.username),
+        staleTime: 5 * 60 * 1000,
+        queryFn: async () => unwrapApiData((await apiClient.get(endpoints.users.settings)).data)
+    });
+
+    useEffect(() => {
+        if (accountSettings.data) {
+            updateUser({
+                name: accountSettings.data.name,
+                username: accountSettings.data.username,
+                avatarUrl: accountSettings.data.avatarUrl
+            });
+        }
+    }, [accountSettings.data, updateUser]);
+
     const handleLogout = async () => {
         await logout();
         setProfileOpen(false);
         navigate("/login", {replace: true});
     };
-    const firstName = firstDisplayName(user?.name, user?.email).toUpperCase();
+    const greetingName = greetingDisplayName(user);
     const primaryLinks = mainLinks.slice(0, 3);
     const moreLinks = mainLinks.slice(3);
     const adminLinks = [
@@ -32,12 +55,13 @@ const Topbar = () => {
     ];
     return <header className="grid min-h-16 grid-cols-[1fr_auto] items-center gap-3 border-b border-slate-200 bg-white px-4 py-2 dark:border-white/10 dark:bg-slate-950 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_auto]">
         <div className="flex min-w-0 items-center">
-            <span className="shrink-0 truncate text-sm font-bold tracking-wide text-slate-950 dark:text-white sm:text-base">Microservice Platform</span>
+            <BrandMark className="max-w-full"/>
         </div>
         <nav className="hidden min-w-0 items-center justify-center gap-1 lg:flex">
-                {primaryLinks.map(({label, to}) => <NavLink
+                {primaryLinks.map(({label, to, end}) => <NavLink
                     key={to}
                     to={to}
+                    end={end}
                     className={({isActive}) => `whitespace-nowrap rounded-md px-2.5 py-2 text-xs font-bold transition ${isActive ? "bg-slate-950 text-white dark:bg-teal-300 dark:text-slate-950" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}
                 >
                     {label}
@@ -60,7 +84,7 @@ const Topbar = () => {
                 />}
         </nav>
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-2 sm:gap-4">
-            <span className="hidden text-sm font-semibold text-slate-700 dark:text-slate-200 sm:inline">Welcome {firstName}</span>
+            {greetingName && <span className="hidden text-sm font-semibold text-slate-700 dark:text-slate-200 sm:inline">Welcome {greetingName}</span>}
             <ThemeToggle/>
             <NotificationBell/>
             <div className="relative">
@@ -104,9 +128,10 @@ const NavDropdown = ({label, links, active, closedMenu, onClose, onOpen}) => <di
     <div className={`absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-2 ${closedMenu === label ? "hidden" : "hidden group-hover:block group-focus-within:block"}`}>
         <div className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950"/>
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white py-1.5 shadow-[0_18px_55px_rgba(15,23,42,0.18)] ring-1 ring-slate-950/5 dark:border-white/10 dark:bg-slate-950 dark:ring-white/10">
-            {links.map(({label: itemLabel, to, Icon}) => <NavLink
+            {links.map(({label: itemLabel, to, Icon, end}) => <NavLink
                 key={to}
                 to={to}
+                end={end}
                 onClick={onClose}
                 className={({isActive}) => `flex items-center gap-2.5 px-3 py-2 text-sm transition ${isActive ? "bg-slate-100 text-slate-950 dark:bg-white/10 dark:text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}
             >
@@ -118,9 +143,11 @@ const NavDropdown = ({label, links, active, closedMenu, onClose, onOpen}) => <di
         </div>
     </div>
 </div>;
-const firstDisplayName = (name, email) => {
-    const candidate = name && !name.includes("@") ? name : email?.split("@")[0];
-    return candidate?.trim().split(/\s+/)[0] || "User";
+const greetingDisplayName = (user) => {
+    const candidate = user?.name && !user.name.includes("@") && user.name.toUpperCase() !== "USER"
+        ? (user.username || user.name)
+        : user?.email?.split("@")[0];
+    return candidate?.trim().split(/\s+/)[0] || "";
 };
 export {
     Topbar

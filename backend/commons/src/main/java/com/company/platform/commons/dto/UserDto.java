@@ -24,6 +24,7 @@ public class UserDto {
     @Email
     private String email;
 
+    private String username;
     private Set<RoleType> roles;
     private String avatarUrl;
 }

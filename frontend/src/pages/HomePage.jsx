@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import {Link} from "react-router-dom";
 import {useAuthStore} from "../store/authStore";
+import {COMPANY_NAME, COMPANY_TAGLINE} from "../components/layout/BrandMark";
 
 const metrics = [
     {label: "Spring Boot services", value: "10+"},
@@ -98,13 +99,13 @@ const HomePage = () => {
                 <div className="flex flex-col justify-center">
                     <div className="inline-flex w-fit items-center gap-2 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-teal-800 dark:border-teal-300/20 dark:bg-teal-300/10 dark:text-teal-200">
                         <Sparkles className="h-4 w-4"/>
-                        Microservice industry template
+                        {COMPANY_TAGLINE}
                     </div>
                     <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-tight text-slate-950 sm:text-5xl lg:text-6xl dark:text-white">
-                        A complete microservice platform with auth, gateway, AI, files, payments, and observability.
+                        {COMPANY_NAME}
                     </h1>
                     <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg dark:text-slate-300">
-                        This template is built like a real SaaS foundation: independently owned services, centralized configuration, secure identity, operational monitoring, and a frontend that now works on desktop, tablet, and phones.
+                        A complete microservice platform with auth, gateway, AI, files, payments, observability, independently owned services, centralized configuration, secure identity, and a frontend that works on desktop, tablet, and phones.
                     </p>
                     <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                         <Link

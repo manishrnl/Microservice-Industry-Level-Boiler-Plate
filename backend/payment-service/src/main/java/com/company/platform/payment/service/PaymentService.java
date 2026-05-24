@@ -1,5 +1,6 @@
 package com.company.platform.payment.service;
 
+import com.company.platform.commons.dto.DemoUserRequestDto;
 import com.company.platform.payment.dto.PaymentConfirmationDto;
 import com.company.platform.payment.dto.PaymentDto;
 import com.company.platform.payment.dto.PaymentRequestDto;
@@ -88,6 +89,21 @@ public class PaymentService {
         return paymentRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::toDto)
                 .toList();
+    }
+
+    public List<PaymentDto> seedDemoData(DemoUserRequestDto request) {
+        UUID userId = request.userId();
+        createDemoPayment(userId, "Platform starter plan", new BigDecimal("499.00"), "INR", "SUCCEEDED",
+                "Demo payment settled successfully.");
+        createDemoPayment(userId, "AI credits top-up", new BigDecimal("249.00"), "INR", "READY",
+                "Demo checkout is ready for confirmation.");
+        createDemoPayment(userId, "File storage add-on", new BigDecimal("149.00"), "INR", "SUCCEEDED",
+                "Demo file storage payment completed.");
+        createDemoPayment(userId, "Observability dashboard seats", new BigDecimal("99.00"), "INR", "CANCELLED",
+                "Demo checkout was cancelled.");
+        createDemoPayment(userId, "Audit export package", new BigDecimal("59.00"), "INR", "FAILED",
+                "Demo payment failed so error states are visible.");
+        return list(userId);
     }
 
     public PaymentDto confirm(UUID userId, UUID paymentId, PaymentConfirmationDto request) {
@@ -188,6 +204,22 @@ public class PaymentService {
                 .message(message)
                 .build();
         return toDto(paymentRepository.save(payment));
+    }
+
+    private void createDemoPayment(UUID userId, String description, BigDecimal amount, String currency, String status, String message) {
+        if (paymentRepository.existsByUserIdAndDescription(userId, description)) {
+            return;
+        }
+        savePayment(userId,
+                UUID.randomUUID(),
+                "DEMO",
+                status,
+                amount,
+                currency,
+                null,
+                frontendBaseUrl + "/payments?status=demo",
+                description,
+                message);
     }
 
     private void updateFromStripeEvent(Map<String, Object> event) {

@@ -23,12 +23,9 @@ spring:
             allowed-origin-patterns:
               # Vite picks 5174 if 5173 is busy; localhost vs 127.0.0.1 differ by browser origin string
               - ${FRONTEND_PUBLIC_URL:http://localhost:5173}
-              - http://localhost:5173
-              - http://localhost:5174
-              - http://127.0.0.1:5173
-              - http://127.0.0.1:5174
               - http://*:5173
               - http://*:5174
+              - http://*:[*]
             allowed-methods:
               - GET
               - POST
@@ -72,6 +69,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
       ssl:
         enabled: ${REDIS_SSL_ENABLED:false}

@@ -30,12 +30,6 @@ public class User extends BaseEntity {
     @Column(name = "password_hash")
     private String passwordHash;
 
-    @Column(name = "full_name")
-    private String fullName;
-
-    @Column(name = "avatar_url", columnDefinition = "TEXT")
-    private String avatarUrl;
-
     @Column(nullable = false)
     private String provider;
 
@@ -53,4 +47,10 @@ public class User extends BaseEntity {
 
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
+
+    @Column(name = "account_status")
+    private String accountStatus;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

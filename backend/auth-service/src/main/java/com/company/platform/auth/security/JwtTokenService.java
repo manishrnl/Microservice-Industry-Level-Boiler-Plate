@@ -27,10 +27,14 @@ public class JwtTokenService {
     }
 
     public String createAccessToken(UUID userId, String email, Set<RoleType> roles, String sessionId) {
-        return createAccessToken(userId, email, roles, sessionId, displayName(email));
+        return createAccessToken(userId, email, roles, sessionId, displayName(email), null);
     }
 
     public String createAccessToken(UUID userId, String email, Set<RoleType> roles, String sessionId, String name) {
+        return createAccessToken(userId, email, roles, sessionId, name, null);
+    }
+
+    public String createAccessToken(UUID userId, String email, Set<RoleType> roles, String sessionId, String name, String username) {
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(issuer)
@@ -40,6 +44,7 @@ public class JwtTokenService {
                 .id(UUID.randomUUID().toString())
                 .claim("email", email)
                 .claim("name", name == null || name.isBlank() ? displayName(email) : name)
+                .claim("username", username == null ? "" : username)
                 .claim("roles", roles.stream().map(Enum::name).toList())
                 .claim("sessionId", sessionId)
                 .build();

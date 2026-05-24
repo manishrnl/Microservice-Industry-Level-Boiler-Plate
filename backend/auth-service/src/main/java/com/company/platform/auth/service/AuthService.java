@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AuthService {
     private static final long ACCESS_TOKEN_EXPIRES_IN_SECONDS = 900;
+    private static final String ACCOUNT_STATUS_ACTIVE = "ACTIVE";
+    private static final String ACCOUNT_STATUS_SUSPENDED = "SUSPENDED";
+    private static final String ACCOUNT_STATUS_DELETED = "DELETED";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -48,6 +52,7 @@ public class AuthService {
     private final RsaKeyService rsaKeyService;
     private final JdbcTemplate jdbcTemplate;
     private final AuthNotificationService notificationService;
+    private final AuthDemoDataService demoDataService;
 
     @Value("${app.bootstrap-super-admin-email:manishrajrnl@gmail.com}")
     private String bootstrapSuperAdminEmail;
@@ -58,30 +63,41 @@ public class AuthService {
         assignUserRole(user, RoleType.USER);
         ensureBaselineRole(user);
         mailService.sendSignupVerification(request.getEmail(), request.getFullName());
+        demoDataService.provision(user, request.getFullName(), request.getAvatarUrl());
         return userMapper.toDto(user, roles(user));
     }
 
     public AuthTokenResponseDto login(LoginRequestDto request, ClientRequestMetadataDto metadata) {
-        User user = userRepository.findByEmailIgnoreCase(request.getEmail())
+        String identifier = loginIdentifier(request);
+        User user = findByLoginIdentifier(identifier)
                 .orElseThrow(() -> new ApiExceptions.UnauthorizedException("Invalid email or password"));
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new ApiExceptions.UnauthorizedException("Invalid email or password");
         }
         if (!user.isEmailVerified()) {
-            mailService.sendSignupVerificationIfNeeded(user.getEmail(), displayName(user, user.getEmail(), user.getFullName()));
+            mailService.sendSignupVerificationIfNeeded(user.getEmail(), displayName(user, user.getEmail(), user.getUsername()));
             throw new ApiExceptions.ForbiddenException("Email is not verified. Enter the OTP sent to your email.");
+        }
+        normalizeAccountStatus(user);
+        if (ACCOUNT_STATUS_DELETED.equals(user.getAccountStatus())) {
+            throw new ApiExceptions.ForbiddenException("Account is deleted");
         }
         if (user.isAccountLocked()) {
             throw new ApiExceptions.ForbiddenException("Account is locked");
         }
 
         ensureBaselineRole(user);
-        return issueToken(user, request.getEmail(), request.getDeviceId(), metadata);
+        return issueToken(user, user.getEmail(), request.getDeviceId(), metadata);
     }
 
     public AuthTokenResponseDto loginWithOAuth(OAuthLoginRequestDto request, ClientRequestMetadataDto metadata) {
         User user = upsertOAuthUser(request);
+        normalizeAccountStatus(user);
+        if (user.isAccountLocked() || ACCOUNT_STATUS_DELETED.equals(user.getAccountStatus())) {
+            throw new ApiExceptions.ForbiddenException("Account is locked");
+        }
         ensureBaselineRole(user);
+        demoDataService.provision(user);
         return issueToken(user, user.getEmail(), "OAuth session", metadata);
     }
 
@@ -91,12 +107,17 @@ public class AuthService {
         }
         UserSession session = sessionService.requireActive(refreshToken);
         User user = session.getUser();
+        normalizeAccountStatus(user);
+        if (user.isAccountLocked() || ACCOUNT_STATUS_DELETED.equals(user.getAccountStatus())) {
+            sessionService.revoke(user, session.getSessionId());
+            throw new ApiExceptions.ForbiddenException("Account is locked");
+        }
         ensureBaselineRole(user);
         Set<RoleType> roles = roles(user);
-        String name = displayName(user, user.getEmail(), user.getFullName());
+        String name = displayName(user, user.getEmail(), user.getUsername());
         sessionService.touch(session.getSessionId());
         TokenDto token = TokenDto.builder()
-                .accessToken(jwtTokenService.createAccessToken(user.getId(), user.getEmail(), roles, session.getSessionId(), name))
+                .accessToken(jwtTokenService.createAccessToken(user.getId(), user.getEmail(), roles, session.getSessionId(), name, user.getUsername()))
                 .tokenType("Bearer")
                 .expiresInSeconds(ACCESS_TOKEN_EXPIRES_IN_SECONDS)
                 .build();
@@ -125,25 +146,63 @@ public class AuthService {
         sessionService.touchIfStale(jwt.getClaimAsString("sessionId"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
+        normalizeAccountStatus(user);
+        if (user.isAccountLocked() || ACCOUNT_STATUS_DELETED.equals(user.getAccountStatus())) {
+            throw new ApiExceptions.ForbiddenException("Account is locked");
+        }
         ensureBaselineRole(user);
         roles = roles(user);
         String name = displayName(user, email, jwt.getClaimAsString("name"));
         return AuthMeResponseDto.builder()
-                .user(userMapper.toDto(user.getId(), name, user.getEmail(), roles, user.getAvatarUrl()))
-                .accessToken(jwtTokenService.createAccessToken(userId, email, roles, jwt.getClaimAsString("sessionId"), name))
+                .user(userMapper.toDto(user.getId(), name, user.getEmail(), roles, null))
+                .accessToken(jwtTokenService.createAccessToken(userId, email, roles, jwt.getClaimAsString("sessionId"), name, user.getUsername()))
                 .build();
     }
 
-    public UserDto updateProfile(ProfileUpdateRequestDto request, Jwt jwt) {
+    public ActionResponseDto changePassword(ChangePasswordRequestDto request, Jwt jwt) {
+        validatePasswordMatch(request.getNewPassword(), request.getConfirmPassword());
         User user = currentUser(jwt);
-        user.setFullName(request.getName());
-        return userMapper.toDto(userRepository.save(user), roles(user));
+        if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new ApiExceptions.UnauthorizedException("Current password is incorrect");
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        mailService.sendPasswordChanged(user.getEmail());
+        return ActionResponseDto.builder()
+                .status("password_changed")
+                .build();
     }
 
-    public UserDto updateAvatar(AvatarUpdateRequestDto request, Jwt jwt) {
+    public ActionResponseDto suspendAccount(AccountActionRequestDto request, Jwt jwt) {
+        requireConfirmation(request.getConfirmation(), "SUSPEND");
         User user = currentUser(jwt);
-        user.setAvatarUrl(blankToNull(request.getAvatarUrl()));
-        return userMapper.toDto(userRepository.save(user), roles(user));
+        int days = request.getDays() == null ? 7 : Math.max(1, Math.min(90, request.getDays()));
+        user.setAccountLocked(true);
+        user.setAccountStatus(ACCOUNT_STATUS_SUSPENDED);
+        user.setLockedUntil(LocalDateTime.now().plusDays(days));
+        userRepository.save(user);
+        sessionService.revokeAll(user);
+        return ActionResponseDto.builder()
+                .status("account_suspended")
+                .revoked(true)
+                .revokedCurrent(true)
+                .build();
+    }
+
+    public ActionResponseDto deleteAccount(AccountActionRequestDto request, Jwt jwt) {
+        requireConfirmation(request.getConfirmation(), "DELETE");
+        User user = currentUser(jwt);
+        user.setAccountLocked(true);
+        user.setAccountStatus(ACCOUNT_STATUS_DELETED);
+        user.setDeletedAt(LocalDateTime.now());
+        user.setLockedUntil(null);
+        userRepository.save(user);
+        sessionService.revokeAll(user);
+        return ActionResponseDto.builder()
+                .status("account_deleted")
+                .revoked(true)
+                .revokedCurrent(true)
+                .build();
     }
 
     public ActionResponseDto verifyEmail(OtpVerificationRequestDto request) {
@@ -170,7 +229,7 @@ public class AuthService {
                     .email(user.getEmail())
                     .build();
         }
-        mailService.resendSignupVerification(user.getEmail(), displayName(user, user.getEmail(), user.getFullName()));
+        mailService.resendSignupVerification(user.getEmail(), displayName(user, user.getEmail(), user.getUsername()));
         return ActionResponseDto.builder()
                 .status("sent")
                 .email(user.getEmail())
@@ -274,16 +333,19 @@ public class AuthService {
         if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new ApiExceptions.ConflictException("Email already registered");
         }
+        String username = usernameForSignup(request, normalizedEmail);
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
+            throw new ApiExceptions.ConflictException("Username already registered");
+        }
         User user = User.builder()
                 .email(normalizedEmail)
-                .username(normalizedEmail)
+                .username(username)
                 .provider("LOCAL")
+                .accountStatus(ACCOUNT_STATUS_ACTIVE)
                 .emailVerified(false)
                 .accountLocked(false)
                 .failedAttempts(0)
                 .build();
-        user.setFullName(request.getFullName());
-        user.setAvatarUrl(blankToNull(request.getAvatarUrl()));
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         return userRepository.save(user);
     }
@@ -294,26 +356,32 @@ public class AuthService {
                 .orElseGet(() -> User.builder()
                         .email(normalizedEmail)
                         .accountLocked(false)
+                        .accountStatus(ACCOUNT_STATUS_ACTIVE)
                         .failedAttempts(0)
                         .build());
         user.setEmail(normalizedEmail);
-        user.setUsername(request.getUsername());
-        user.setFullName(request.getFullName());
-        user.setAvatarUrl(request.getAvatarUrl());
+        user.setUsername(usernameForOAuth(request, normalizedEmail));
         user.setProvider(request.getProvider().toUpperCase());
         user.setProviderId(request.getProviderId());
         user.setEmailVerified(true);
+        user.setAccountStatus(user.getAccountStatus() == null ? ACCOUNT_STATUS_ACTIVE : user.getAccountStatus());
         return userRepository.save(user);
     }
 
     private AuthTokenResponseDto issueToken(User user, String email, String deviceId, ClientRequestMetadataDto metadata) {
         String sessionId = UUID.randomUUID().toString();
+        boolean suspiciousLogin = sessionService.isSuspiciousLogin(user, deviceId, metadata.getIpAddress(), metadata.getUserAgent());
         sessionService.create(user, sessionId, deviceId, metadata.getIpAddress(), metadata.getUserAgent());
         mailService.sendLoginNotice(email);
+        if (suspiciousLogin) {
+            mailService.sendSuspiciousLoginWarning(email, metadata.getIpAddress(), metadata.getUserAgent());
+        }
         notificationService.loginDetected(user, sessionId, metadata);
+        demoDataService.provision(user);
         Set<RoleType> roles = roles(user);
+        String name = displayName(user, email, user.getUsername());
         TokenDto token = TokenDto.builder()
-                .accessToken(jwtTokenService.createAccessToken(user.getId(), email, roles, sessionId, user.getFullName()))
+                .accessToken(jwtTokenService.createAccessToken(user.getId(), email, roles, sessionId, name, user.getUsername()))
                 .tokenType("Bearer")
                 .expiresInSeconds(ACCESS_TOKEN_EXPIRES_IN_SECONDS)
                 .build();
@@ -357,8 +425,33 @@ public class AuthService {
     private User currentUser(Jwt jwt) {
         sessionService.requireActive(jwt.getClaimAsString("sessionId"));
         sessionService.touchIfStale(jwt.getClaimAsString("sessionId"));
-        return userRepository.findById(parseUuid(jwt.getSubject()))
+        User user = userRepository.findById(parseUuid(jwt.getSubject()))
                 .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
+        normalizeAccountStatus(user);
+        if (user.isAccountLocked() || ACCOUNT_STATUS_DELETED.equals(user.getAccountStatus())) {
+            throw new ApiExceptions.ForbiddenException("Account is locked");
+        }
+        return user;
+    }
+
+    private void normalizeAccountStatus(User user) {
+        if (user.getAccountStatus() == null || user.getAccountStatus().isBlank()) {
+            user.setAccountStatus(ACCOUNT_STATUS_ACTIVE);
+        }
+        if (ACCOUNT_STATUS_SUSPENDED.equals(user.getAccountStatus())
+                && user.getLockedUntil() != null
+                && user.getLockedUntil().isBefore(LocalDateTime.now())) {
+            user.setAccountLocked(false);
+            user.setLockedUntil(null);
+            user.setAccountStatus(ACCOUNT_STATUS_ACTIVE);
+            userRepository.save(user);
+        }
+    }
+
+    private void requireConfirmation(String actual, String expected) {
+        if (actual == null || !expected.equals(actual.trim())) {
+            throw new ApiExceptions.ValidationException("Type " + expected + " to confirm this account action");
+        }
     }
 
     private void validatePasswordMatch(String password, String confirmPassword) {
@@ -394,16 +487,11 @@ public class AuthService {
     }
 
     private String displayName(User user, String email, String fallback) {
-        String name = user.getFullName();
-        if (name == null || name.isBlank() || name.equalsIgnoreCase(email)) {
-            return fallbackName(email, fallback);
-        }
-        return name;
-    }
-
-    private String fallbackName(String email, String fallback) {
         if (fallback != null && !fallback.isBlank() && !fallback.equalsIgnoreCase(email)) {
             return fallback;
+        }
+        if (user.getUsername() != null && !user.getUsername().isBlank() && !user.getUsername().equalsIgnoreCase(email)) {
+            return user.getUsername();
         }
         if (email == null || email.isBlank()) {
             return "User";
@@ -413,10 +501,38 @@ public class AuthService {
     }
 
     private String normalizeEmail(String email) {
-        return email.toLowerCase();
+        return email.trim().toLowerCase();
     }
 
-    private String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value;
+    private String normalizeUsername(String username) {
+        return username == null ? "" : username.trim().toLowerCase();
+    }
+
+    private String loginIdentifier(LoginRequestDto request) {
+        String identifier = request.getIdentifier();
+        if (identifier == null || identifier.isBlank()) {
+            identifier = request.getEmail();
+        }
+        if (identifier == null || identifier.isBlank()) {
+            throw new ApiExceptions.ValidationException("Email or username is required");
+        }
+        return identifier.trim();
+    }
+
+    private java.util.Optional<User> findByLoginIdentifier(String identifier) {
+        if (identifier.contains("@")) {
+            return userRepository.findByEmailIgnoreCase(normalizeEmail(identifier));
+        }
+        return userRepository.findByUsernameIgnoreCase(normalizeUsername(identifier));
+    }
+
+    private String usernameForSignup(SignupRequestDto request, String normalizedEmail) {
+        String username = normalizeUsername(request.getUsername());
+        return username.isBlank() ? normalizedEmail : username;
+    }
+
+    private String usernameForOAuth(OAuthLoginRequestDto request, String normalizedEmail) {
+        String username = normalizeUsername(request.getUsername());
+        return username.isBlank() ? normalizedEmail : username;
     }
 }

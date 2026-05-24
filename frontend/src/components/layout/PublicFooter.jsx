@@ -11,6 +11,7 @@ import {
     Send,
     Twitter
 } from "lucide-react";
+import {COMPANY_NAME} from "./BrandMark";
 const socialLinks = [
     {href: "https://www.linkedin.com/in/manishrnl", label: "LinkedIn", Icon: Linkedin},
     {href: "https://github.com/manishrnl", label: "GitHub", Icon: Github},
@@ -71,7 +72,7 @@ const PublicFooter = () => <footer id="contact" className="border-t border-slate
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 Microservice Template. All rights reserved.</p>
+            <p>© 2026 {COMPANY_NAME}. All rights reserved.</p>
             <p className="inline-flex items-center gap-2">
                 <Send className="h-3.5 w-3.5 text-teal-300"/>
                 Designed by <strong className="text-amber-200">Manish</strong>

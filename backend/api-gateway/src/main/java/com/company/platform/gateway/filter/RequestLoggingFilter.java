@@ -1,5 +1,6 @@
 package com.company.platform.gateway.filter;
 
+import com.company.platform.gateway.log.GatewayLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,11 +17,14 @@ public class RequestLoggingFilter implements GlobalFilter, Ordered {
 
     private final boolean accessLogEnabled;
     private final long slowRequestThresholdMs;
+    private final GatewayLogService gatewayLogs;
 
     public RequestLoggingFilter(@Value("${gateway.request-logging.enabled:false}") boolean accessLogEnabled,
-                                @Value("${gateway.request-logging.slow-threshold-ms:1000}") long slowRequestThresholdMs) {
+                                @Value("${gateway.request-logging.slow-threshold-ms:1000}") long slowRequestThresholdMs,
+                                GatewayLogService gatewayLogs) {
         this.accessLogEnabled = accessLogEnabled;
         this.slowRequestThresholdMs = slowRequestThresholdMs;
+        this.gatewayLogs = gatewayLogs;
     }
 
     @Override
@@ -31,6 +35,14 @@ public class RequestLoggingFilter implements GlobalFilter, Ordered {
         long started = System.currentTimeMillis();
         return chain.filter(exchange).doFinally(signal -> {
             long durationMs = System.currentTimeMillis() - started;
+            Integer status = exchange.getResponse().getStatusCode() == null ? null : exchange.getResponse().getStatusCode().value();
+            gatewayLogs.recordRequest(
+                    String.valueOf(exchange.getRequest().getMethod()),
+                    exchange.getRequest().getPath().value(),
+                    exchange.getRequest().getHeaders().getFirst("X-User-Id"),
+                    durationMs,
+                    status
+            );
             if (accessLogEnabled || durationMs >= slowRequestThresholdMs) {
                 log.info("gateway_request method={} path={} userId={} durationMs={} status={}",
                         exchange.getRequest().getMethod(),

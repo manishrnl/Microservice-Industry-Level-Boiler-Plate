@@ -14,9 +14,10 @@ const MobileNav = () => {
 
     return <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur dark:border-white/10 dark:bg-slate-950/95 lg:hidden">
         <div className="mx-auto flex max-w-md justify-around gap-1">
-            {links.map(({label, to, Icon}) => <NavLink
+            {links.map(({label, to, Icon, end}) => <NavLink
                 key={to}
                 to={to}
+                end={end}
                 className={({isActive}) => `flex min-w-0 flex-1 flex-col items-center justify-center rounded-md px-1 py-1.5 text-[10px] font-bold ${isActive ? "bg-slate-950 text-white dark:bg-teal-300 dark:text-slate-950" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"}`}
             >
                 <Icon className="h-4 w-4"/>

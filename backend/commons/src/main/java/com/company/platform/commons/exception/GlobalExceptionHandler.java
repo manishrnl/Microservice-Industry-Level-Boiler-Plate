@@ -92,13 +92,13 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * JDBC / connection / missing table–style failures (often misconfigured {@code AUTH_DATABASE_URL} or Flyway not run).
+     * JDBC / connection / missing table-style failures (often misconfigured datasource settings or schema creation).
      */
     @ExceptionHandler(DataAccessException.class)
     ResponseEntity<ProblemDetails> dataAccess(DataAccessException ex) {
         log.error("Database access error", ex);
         return problem(HttpStatus.SERVICE_UNAVAILABLE,
-                "Database is unavailable or misconfigured. Ensure PostgreSQL is reachable and Flyway migrations have been applied to auth_db.",
+                "Database is unavailable or misconfigured. Ensure PostgreSQL is reachable and Hibernate schema creation has completed.",
                 Map.of());
     }
 

@@ -53,7 +53,7 @@ const OAuthButtons = ({mode}) => {
     useEffect(() => () => stopActivityRef.current?.(), []);
     const startOAuth = (provider) => {
         const label = allProviders.find((item) => item.provider === provider)?.label ?? provider;
-        const authorizeUrl = new URL(endpoints.auth.oauthAuthorize(provider));
+        const authorizeUrl = new URL(endpoints.auth.oauthAuthorize(provider), window.location.origin);
         const timeZone = getPreferredTimeZone();
         if (timeZone) {
             authorizeUrl.searchParams.set("timeZone", timeZone);

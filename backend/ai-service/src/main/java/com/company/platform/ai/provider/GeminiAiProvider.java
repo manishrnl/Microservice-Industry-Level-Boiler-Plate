@@ -32,9 +32,15 @@ public class GeminiAiProvider implements AiProvider {
 
     @Override
     public Mono<String> chat(ChatRequest request) {
+        List<Map<String, Object>> contents = new java.util.ArrayList<>();
+        for (ChatRequest.ChatTurn turn : request.history()) {
+            String role = "assistant".equalsIgnoreCase(turn.role()) ? "model" : "user";
+            contents.add(Map.of("role", role, "parts", List.of(Map.of("text", sanitize(turn.content())))));
+        }
+        contents.add(Map.of("role", "user", "parts", List.of(Map.of("text", sanitize(request.message())))));
         Map<String, Object> body = Map.of(
                 "system_instruction", Map.of("parts", List.of(Map.of("text", request.systemPrompt() == null ? "You are a helpful assistant." : request.systemPrompt()))),
-                "contents", List.of(Map.of("role", "user", "parts", List.of(Map.of("text", sanitize(request.message()))))),
+                "contents", contents,
                 "generationConfig", Map.of("temperature", 0.7, "maxOutputTokens", 2048, "topP", 0.95),
                 "safetySettings", List.of(Map.of("category", "HARM_CATEGORY_HARASSMENT", "threshold", "BLOCK_MEDIUM_AND_ABOVE"))
         );

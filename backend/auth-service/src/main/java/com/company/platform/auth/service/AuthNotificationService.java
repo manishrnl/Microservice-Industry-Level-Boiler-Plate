@@ -32,7 +32,7 @@ public class AuthNotificationService {
                     .body(Map.of(
                             "userId", user.getId(),
                             "email", user.getEmail(),
-                            "name", user.getFullName() == null ? "" : user.getFullName(),
+                            "name", user.getUsername() == null ? "" : user.getUsername(),
                             "sessionId", sessionId,
                             "ipAddress", metadata.getIpAddress() == null ? "" : metadata.getIpAddress(),
                             "userAgent", metadata.getUserAgent() == null ? "" : metadata.getUserAgent(),

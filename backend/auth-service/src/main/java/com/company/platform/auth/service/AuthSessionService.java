@@ -41,6 +41,17 @@ public class AuthSessionService {
         deleteOldestOverLimit(user);
     }
 
+    public boolean isSuspiciousLogin(User user, String deviceId, String ipAddress, String userAgent) {
+        String normalizedDeviceId = blankToNull(deviceId);
+        String normalizedIpAddress = blankToNull(ipAddress);
+        String normalizedUserAgent = blankToNull(userAgent);
+        List<UserSession> activeSessions = sessions.findByUserAndExpiredFalseOrderByLastActiveDescCreatedAtDesc(user);
+        if (activeSessions.isEmpty()) {
+            return false;
+        }
+        return activeSessions.stream().noneMatch(session -> knownSession(session, normalizedDeviceId, normalizedIpAddress, normalizedUserAgent));
+    }
+
     public UserSession requireActive(String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
             throw new ApiExceptions.UnauthorizedException("Session is expired or revoked");
@@ -111,6 +122,16 @@ public class AuthSessionService {
         if (lastActive == null || lastActive.isBefore(LocalDateTime.now().minusSeconds(TOUCH_THROTTLE_SECONDS))) {
             sessions.touchSessionBySessionId(session.getSessionId());
         }
+    }
+
+    private boolean knownSession(UserSession session, String deviceId, String ipAddress, String userAgent) {
+        if (deviceId != null && deviceId.equals(session.getDeviceId())) {
+            return true;
+        }
+        if (ipAddress != null && ipAddress.equals(session.getIpAddress())) {
+            return userAgent == null || userAgent.equals(session.getUserAgent());
+        }
+        return userAgent != null && userAgent.equals(session.getUserAgent());
     }
 
     private String blankToNull(String value) {

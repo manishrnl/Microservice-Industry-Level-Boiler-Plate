@@ -56,6 +56,15 @@ public class AuthEmailTemplates {
         );
     }
 
+    public AuthEmailContent suspiciousLoginWarning(String ipAddress, String userAgent) {
+        String detail = "IP address: " + unknown(ipAddress) + "\nBrowser/device: " + unknown(userAgent);
+        return notice(
+                "Suspicious login warning",
+                "We noticed a sign-in from a device or network that does not match your active sessions.",
+                detail + "\n\nIf this was not you, reset your password immediately and revoke unknown sessions."
+        );
+    }
+
     private AuthEmailContent otp(String title, String intro, String body, String otp, String footer) {
         String text = String.join("\n",
                 title,
@@ -134,5 +143,9 @@ public class AuthEmailTemplates {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    private String unknown(String value) {
+        return StringUtils.hasText(value) ? value : "unknown";
     }
 }

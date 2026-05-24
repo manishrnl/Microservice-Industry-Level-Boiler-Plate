@@ -1,5 +1,6 @@
 spring:
   datasource:
+    driver-class-name: ${HIBERNATE_DRIVER_NAME:org.postgresql.Driver}
     hikari:
       maximum-pool-size: ${DB_POOL_MAX_SIZE:5}
       minimum-idle: ${DB_POOL_MIN_IDLE:0}
@@ -15,13 +16,19 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     properties:
       security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
-  flyway:
-    enabled: ${FLYWAY_ENABLED:true}
-    validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:true}
+      sasl.mechanism: ${KAFKA_SASL_MECHANISM:PLAIN}
+      sasl.jaas.config: ${KAFKA_SASL_JAAS_CONFIG:}
+      ssl.endpoint.identification.algorithm: ${KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM:https}
+      ssl.keystore.location: ${KAFKA_SSL_KEYSTORE_LOCATION:}
+      ssl.keystore.password: ${KAFKA_SSL_KEYSTORE_PASSWORD:}
+      ssl.keystore.type: ${KAFKA_SSL_KEYSTORE_TYPE:PKCS12}
+      ssl.truststore.location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:}
+      ssl.truststore.password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD:}
+      ssl.truststore.type: ${KAFKA_SSL_TRUSTSTORE_TYPE:JKS}
   jpa:
     generate-ddl: true
     hibernate:
-      ddl-auto: ${DATABASE_AUTO_DDL:update}
+      ddl-auto: ${DATABASE_AUTO_DDL:create}
     properties:
       hibernate:
         hbm2ddl:

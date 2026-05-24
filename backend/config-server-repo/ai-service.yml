@@ -1,10 +1,16 @@
 server:
   port: ${SERVER_PORT:${PORT:8086}}
 spring:
+  datasource:
+    driver-class-name: ${HIBERNATE_DRIVER_NAME:${HIBERNATE_DRIVER_NAME:org.postgresql.Driver}}
+    url: ${AI_DATABASE_URL}
+    username: ${AI_DATABASE_USERNAME}
+    password: ${AI_DATABASE_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD}
       ssl:
         enabled: ${REDIS_SSL_ENABLED:false}

@@ -8,6 +8,7 @@ server:
     max-connections: ${AUTH_TOMCAT_MAX_CONNECTIONS:10000}
 spring:
   datasource:
+    driver-class-name: ${HIBERNATE_DRIVER_NAME:org.postgresql.Driver}
     url: ${AUTH_DATABASE_URL}
     username: ${AUTH_DATABASE_USERNAME}
     password: ${AUTH_DATABASE_PASSWORD}
@@ -28,67 +29,29 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD}
       ssl:
         enabled: ${REDIS_SSL_ENABLED:false}
   mail:
-    host: ${MAIL_HOST:smtp-relay.brevo.com}
-    port: ${MAIL_PORT:465}
+    host: ${MAIL_HOST:mailhog}
+    port: ${MAIL_PORT:1025}
     username: ${BREVO_USERNAME:}
     password: ${BREVO_PASSWORD:}
     properties:
       mail:
         debug: ${MAIL_DEBUG:false}
         smtp:
-          auth: true
+          auth: ${MAIL_SMTP_AUTH:false}
           ssl:
-            enable: true
-            socketFactory:
-              port: 465
-              class: javax.net.ssl.SSLSocketFactory
-              fallback: false
+            enable: ${MAIL_SMTP_SSL_ENABLE:false}
           connectiontimeout: 10000
           timeout: 10000
           writetimeout: 10000
           starttls:
-            enable: true
-            required: true
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:false}
           fromEmail: ${BREVO_FROM_EMAIL:${MAIL_FROM:no-reply@platform.local}}
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_OAUTH_CLIENT_ID}
-            client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET}
-            scope:
-              - openid
-              - profile
-              - email
-            redirect-uri: ${BACKEND_PUBLIC_URL}/api/v1/auth/oauth2/callback/{registrationId}
-          github:
-            client-id: ${GITHUB_OAUTH_CLIENT_ID}
-            client-secret: ${GITHUB_OAUTH_CLIENT_SECRET}
-            scope:
-              - read:user
-              - user:email
-            redirect-uri: ${BACKEND_PUBLIC_URL}/api/v1/auth/oauth2/callback/{registrationId}
-          linkedin:
-            client-id: ${LINKEDIN_OAUTH_CLIENT_ID}
-            client-secret: ${LINKEDIN_OAUTH_CLIENT_SECRET}
-            authorization-grant-type: authorization_code
-            scope:
-              - openid
-              - profile
-              - email
-            redirect-uri: ${BACKEND_PUBLIC_URL}/api/v1/auth/oauth2/callback/{registrationId}
-        provider:
-          linkedin:
-            issuer-uri: ${LINKEDIN_ISSUER_URI}
-            authorization-uri: ${LINKEDIN_AUTHORIZATION_URI}
-            token-uri: ${LINKEDIN_TOKEN_URI}
-            user-info-uri: ${LINKEDIN_USER_INFO_URI}
-            user-name-attribute: sub
 management:
   health:
     mail:
@@ -129,10 +92,17 @@ oauth:
       scopes: ${LINKEDIN_OAUTH_SCOPES}
 app:
   frontend-base-url: ${FRONTEND_PUBLIC_URL}
+  user-service-url: ${USER_SERVICE_URL:http://user-service:8082}
   notification-service-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8083}
-  bootstrap-super-admin-email: ${BOOTSTRAP_SUPER_ADMIN_EMAIL:manishrajrnl@gmail.com}
+  payment-service-url: ${PAYMENT_SERVICE_URL:http://payment-service:8084}
+  file-service-url: ${FILE_SERVICE_URL:http://file-service:8085}
+  ai-service-url: ${AI_SERVICE_URL:http://ai-service:8086}
+  audit-service-url: ${AUDIT_SERVICE_URL:http://audit-service:8087}
+  bootstrap-super-admin-email: ${BOOTSTRAP_SUPER_ADMIN_EMAIL:manishrajrnl@zohomail.in}
+  bootstrap-super-admin-username: ${BOOTSTRAP_SUPER_ADMIN_USERNAME:manish}
+  bootstrap-super-admin-password: ${BOOTSTRAP_SUPER_ADMIN_PASSWORD:Password@123}
   mail:
-    provider: ${MAIL_PROVIDER:brevo}
+    provider: ${MAIL_PROVIDER:smtp}
     from: ${BREVO_FROM_EMAIL:${MAIL_FROM:no-reply@platform.local}}
     from-name: ${MAIL_FROM_NAME:Platform}
     brevo:

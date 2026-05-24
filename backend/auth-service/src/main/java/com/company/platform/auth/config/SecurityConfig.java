@@ -25,6 +25,7 @@ public class SecurityConfig {
             "/api/v1/auth/.well-known/jwks.json",
             "/api/v1/auth/db-ping",
             "/api/v1/auth/db-stats",
+            "/api/v1/auth/mail/brevo/diagnostics",
             "/actuator/",
             "/swagger-ui/",
             "/v3/api-docs/"
@@ -34,7 +35,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout", "/api/v1/auth/verify-email", "/api/v1/auth/resend-verification", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/.well-known/jwks.json", "/api/v1/auth/db-ping", "/api/v1/auth/db-stats", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout", "/api/v1/auth/verify-email", "/api/v1/auth/resend-verification", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/.well-known/jwks.json", "/api/v1/auth/db-ping", "/api/v1/auth/db-stats", "/api/v1/auth/mail/brevo/diagnostics", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/auth/oauth2/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

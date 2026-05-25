@@ -1,4 +1,4 @@
-import {ChevronDown, History, LogOut, RadioTower, Users} from "lucide-react";
+import {ChevronDown, FlaskConical, History, LogOut, RadioTower, Users} from "lucide-react";
 import {NavLink, useLocation, useNavigate} from "react-router-dom";
 import {useState} from "react";
 import {ThemeToggle} from "../common/ThemeToggle";
@@ -33,7 +33,8 @@ const Topbar = () => {
         {label: "Users", to: "/app/admin/users", Icon: Users},
         {label: "Audit", to: "/app/admin/audit", Icon: History},
         {label: "Observability", to: "/app/admin/observability", Icon: RadioTower},
-        {label: "Loki Logs", to: "/app/admin/logs", Icon: RadioTower}
+        {label: "Loki Logs", to: "/app/admin/logs", Icon: RadioTower},
+        {label: "testsApp", to: "/app/admin/applicationTests", Icon: FlaskConical}
     ];
     return <header className="grid min-h-16 grid-cols-[1fr_auto] items-center gap-3 border-b border-slate-200 bg-white px-4 py-2 dark:border-white/10 dark:bg-slate-950 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_auto]">
         <div className="flex min-w-0 items-center">

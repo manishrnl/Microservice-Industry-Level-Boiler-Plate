@@ -83,7 +83,7 @@ public class OAuthController {
                     .encode(StandardCharsets.UTF_8)
                     .build()
                     .toUri();
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | IllegalStateException ex) {
             throw new ApiExceptions.ValidationException("OAuth provider has an invalid authorization URL: " + provider);
         }
         return ResponseEntity.status(302).location(redirectUri).build();

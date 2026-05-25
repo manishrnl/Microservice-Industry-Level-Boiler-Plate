@@ -16,7 +16,7 @@ const DEFAULTS = {
 
 const usage = () => `
 Usage:
-  node scripts/load-test-api.mjs [options]
+  node frontend/scripts/load-test-api.mjs [options]
 
 Options:
   --url <url>             API URL to bombard. Default: ${DEFAULTS.url}
@@ -32,9 +32,9 @@ Options:
   --success-max <code>    Highest status counted as passed. Default: ${DEFAULTS.successMax}
 
 Examples:
-  node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 20 --concurrency 100
-  node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 30 --concurrency 200
-  node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/me --header "Authorization: Bearer TOKEN" --duration 60 --concurrency 500 --rps 5000
+  node frontend/scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 20 --concurrency 100
+  node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 30 --concurrency 200
+  node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/me --header "Authorization: Bearer TOKEN" --duration 60 --concurrency 500 --rps 5000
 `;
 
 const readOptionValue = (args, index, name) => {

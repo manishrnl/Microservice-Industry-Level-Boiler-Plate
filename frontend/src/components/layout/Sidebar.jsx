@@ -3,6 +3,7 @@ import {
     Bot,
     CreditCard,
     FileText,
+    FlaskConical,
     Gauge,
     History,
     RadioTower,
@@ -29,7 +30,8 @@ const Sidebar = () => {
         {label: "Users", to: "/app/admin/users", Icon: Users},
         {label: "Audit", to: "/app/admin/audit", Icon: History},
         {label: "Observability", to: "/app/admin/observability", Icon: RadioTower},
-        {label: "Loki Logs", to: "/app/admin/logs", Icon: RadioTower}
+        {label: "Loki Logs", to: "/app/admin/logs", Icon: RadioTower},
+        {label: "testsApp", to: "/app/admin/applicationTests", Icon: FlaskConical}
     ] : [];
     return <aside className="hidden w-64 border-r border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950 md:block">
         <BrandMark className="mb-5 px-1"/>

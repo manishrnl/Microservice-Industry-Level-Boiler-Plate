@@ -33,7 +33,7 @@ node --version
 From the project root:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 20 --concurrency 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 20 --concurrency 100
 ```
 
 ## Target A Specific Requests-Per-Second Rate
@@ -41,7 +41,7 @@ node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --dur
 Use `--rps` when you want the script to try a fixed request rate instead of running as fast as possible.
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/actuator/health `
   --duration 20 `
   --concurrency 1000 `
@@ -57,11 +57,11 @@ Do not start at `1 lakh` or `10,000` RPS. Start small, then increase until the r
 For your local machine, a practical ramp looks like this:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 50 --rps 100
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 100 --rps 250
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 200 --rps 500
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 400 --rps 1000
-node scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 800 --rps 2000
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 50 --rps 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 100 --rps 250
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 200 --rps 500
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 400 --rps 1000
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/actuator/health --duration 30 --concurrency 800 --rps 2000
 ```
 
 The maximum smooth RPS is the highest command where:
@@ -85,7 +85,7 @@ For a huge-user production-style app, judge capacity by:
 This checks whether the API gateway process is responding.
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/actuator/health `
   --duration 20 `
   --concurrency 100
@@ -96,7 +96,7 @@ node scripts/load-test-api.mjs `
 This is better for testing gateway filters and rate limiting than `/actuator/health`, because it goes through a normal routed API path.
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/.well-known/jwks.json `
   --duration 30 `
   --concurrency 200
@@ -107,7 +107,7 @@ Your gateway anonymous rate limit is currently `100` requests per minute, so thi
 Use this version to intentionally hit the anonymous gateway limit quickly:
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/.well-known/jwks.json `
   --duration 60 `
   --concurrency 200 `
@@ -119,7 +119,7 @@ node scripts/load-test-api.mjs `
 Use this when you want to bypass the gateway and hit the auth service container/port directly.
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8081/actuator/health `
   --duration 20 `
   --concurrency 100
@@ -153,7 +153,7 @@ Invoke-RestMethod http://localhost:8080/api/v1/auth/db-ping
 Then run a smooth DB load test:
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/db-ping `
   --duration 30 `
   --concurrency 50 `
@@ -163,10 +163,10 @@ node scripts/load-test-api.mjs `
 Ramp the DB-backed API gradually:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 100
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 100 --rps 250
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 200 --rps 500
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 400 --rps 1000
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 100 --rps 250
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 200 --rps 500
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 400 --rps 1000
 ```
 
 If `/actuator/health` is `GOOD` at high RPS but `/api/v1/auth/db-ping` becomes `WARNING` or `BAD`, your bottleneck is probably database, connection pool, or auth-service DB logic.
@@ -193,9 +193,9 @@ Invoke-RestMethod http://localhost:8080/api/v1/auth/db-stats
 Load test table counts gently:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 20 --rps 25
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 50 --rps 50
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 100 --rps 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 20 --rps 25
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 50 --rps 50
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-stats --duration 30 --concurrency 100 --rps 100
 ```
 
 Do not use table-count endpoints as your only DB benchmark if tables are large. `count(*)` can be much heavier than normal indexed business queries.
@@ -248,12 +248,12 @@ When interpreting results:
 ## Test Other Service Health URLs
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8082/actuator/health --duration 20 --concurrency 100
-node scripts/load-test-api.mjs --url http://localhost:8083/actuator/health --duration 20 --concurrency 100
-node scripts/load-test-api.mjs --url http://localhost:8084/actuator/health --duration 20 --concurrency 100
-node scripts/load-test-api.mjs --url http://localhost:8085/actuator/health --duration 20 --concurrency 100
-node scripts/load-test-api.mjs --url http://localhost:8086/actuator/health --duration 20 --concurrency 100
-node scripts/load-test-api.mjs --url http://localhost:8087/actuator/health --duration 20 --concurrency 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8082/actuator/health --duration 20 --concurrency 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8083/actuator/health --duration 20 --concurrency 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8084/actuator/health --duration 20 --concurrency 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8085/actuator/health --duration 20 --concurrency 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8086/actuator/health --duration 20 --concurrency 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8087/actuator/health --duration 20 --concurrency 100
 ```
 
 Service ports:
@@ -274,7 +274,7 @@ Service ports:
 Be careful with this because it creates real login/session activity.
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/login `
   --method POST `
   --header "Content-Type: application/json" `
@@ -288,7 +288,7 @@ node scripts/load-test-api.mjs `
 Use this for protected APIs.
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/me `
   --header "Authorization: Bearer YOUR_ACCESS_TOKEN" `
   --duration 20 `
@@ -319,7 +319,7 @@ $token = $login.accessToken
 Then bombard the DB-backed endpoint:
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/me `
   --header "Authorization: Bearer $token" `
   --duration 30 `
@@ -330,7 +330,7 @@ node scripts/load-test-api.mjs `
 Heavier DB-backed session-list read:
 
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/sessions `
   --header "Authorization: Bearer eyJraWQiOiJwbGF0Zm9ybS1rZXktMS05NTQ1ODI2My1jNzIwLTQ5ODAtYWZjZC03NmQ5NDVkNDA3ZGYiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI2ZGM1NTdiNC0zMmQyLTRiNWUtOGI3Yy0zNTdhODhiOWRlMTQiLCJyb2xlcyI6WyJVU0VSIl0sImlzcyI6InBsYXRmb3JtLWF1dGgtc2VydmljZSIsIm5hbWUiOiJNYW5pc2ggU2FodSIsInNlc3Npb25JZCI6ImIyYWIyYWZmLTNkN2UtNDI1OS1hYTI1LTI2YmVhYWJjZjNlYiIsImV4cCI6MTc3OTMzOTQ5MSwiaWF0IjoxNzc5MzM4NTkxLCJqdGkiOiI3ZGRkYzUyYi1hYjJhLTQ0ZjgtYjkyZS02MjVkOTUzOTAyNzQiLCJlbWFpbCI6Im1hbmlzaHJhanJubEBnbWFpbC5jb20ifQ.TSEVDx61XD9Qqqj0Pt0B15AEQ2cpzdpYXck2YgxBIrgsaQ3WJG1Ha-3xo7Lin8I0e4vIfZHPMkO-lyEq-AOfR-UyPmySnBY-UJAq6o505JJCKcXgzrUxJAw7-u7UpGTA3ddFyohMKBF3uP5pUPY4lylploKCVuZKHO87Nj_NxcdJyTFvsxFdmFJFlH4F9bDspsnmMl4ZuD9wpqioLSGfF-N7vuSE90XO2tau3LUSWjOt-KuRhMBnYl_v3-hCEcV-4fKNTnxBRjHFhjU6lSmBXF3zhM3JnyNRKc25JSj9uRPA1y2ufcZSY-kjwOWhu8MD4QgtM3d19NT9SwWamql2gA" `
   --duration 30 `
@@ -339,7 +339,7 @@ node scripts/load-test-api.mjs `
 
 ```
 ```powershell
-node scripts/load-test-api.mjs `
+node frontend/scripts/load-test-api.mjs `
   --url http://localhost:8080/api/v1/auth/sessions `
   --header "Authorization: Bearer $token" `
   --duration 30 `
@@ -447,19 +447,19 @@ The script also prints `Result interpretation`. Use that section as the plain-En
 Start small with public gateway:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 10 --concurrency 10
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 10 --concurrency 10
 ```
 
 Then increase pressure:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 30 --concurrency 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 30 --concurrency 100
 ```
 
 Then intentionally exceed the anonymous gateway limit:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 60 --concurrency 200
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/.well-known/jwks.json --duration 60 --concurrency 200
 ```
 
 Expected result: after enough requests, the HTTP status counts should include `429`.
@@ -467,15 +467,15 @@ Expected result: after enough requests, the HTTP status counts should include `4
 Start small with DB-backed app testing:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 100
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 100
 ```
 
 If that is not `GOOD`, reduce the target:
 
 ```powershell
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 10 --rps 10
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 20 --rps 25
-node scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 50
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 10 --rps 10
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 20 --rps 25
+node frontend/scripts/load-test-api.mjs --url http://localhost:8080/api/v1/auth/db-ping --duration 30 --concurrency 50 --rps 50
 ```
 
 ## Notes

@@ -13,6 +13,7 @@ import {SignupPage} from "./pages/auth/SignupPage";
 import {OAuthCallbackPage} from "./pages/auth/OAuthCallbackPage";
 import {ForgotPasswordPage} from "./pages/auth/ForgotPasswordPage";
 import {Dashboard} from "./pages/Dashboard";
+import {ImageGalleryPage} from "./pages/ImageGalleryPage";
 import {ProfilePage} from "./pages/ProfilePage";
 import {NotificationsPage} from "./pages/NotificationsPage";
 import {SessionsPage} from "./pages/SessionsPage";
@@ -23,6 +24,7 @@ import {UserManagementPage} from "./pages/admin/UserManagementPage";
 import {AuditLogPage} from "./pages/admin/AuditLogPage";
 import {ObservabilityPage} from "./pages/admin/ObservabilityPage";
 import {LokiLogsPage} from "./pages/admin/LokiLogsPage";
+import {ApplicationTestsPage} from "./pages/admin/ApplicationTestsPage";
 import {NotFoundPage} from "./pages/NotFoundPage";
 import {AccessDeniedPage} from "./pages/AccessDeniedPage";
 
@@ -32,6 +34,7 @@ const pageTitles = [
     {path: "/signup", title: "Signup"},
     {path: "/forgot-password", title: "Forgot Password"},
     {path: "/oauth/callback", title: "OAuth Callback"},
+    {path: "/gallery", title: "Image Gallery"},
     {path: "/app/dashboard", title: "Dashboard"},
     {path: "/app/profile", title: "Profile"},
     {path: "/app/notifications", title: "Notifications"},
@@ -43,6 +46,7 @@ const pageTitles = [
     {path: "/app/admin/audit", title: "Admin Audit"},
     {path: "/app/admin/observability", title: "Observability"},
     {path: "/app/admin/logs", title: "Loki Logs"},
+    {path: "/app/admin/applicationTests", title: "testsApp"},
     {path: "/app/super-admin/observability", title: "Super Admin Logs"},
     {path: "/app/super-admin/logs", title: "System Logs"},
     {path: "/403", title: "Access Denied"}
@@ -76,6 +80,7 @@ const App = () => {
         <Routes>
             <Route element={<PublicLayout/>}>
                 <Route index element={<HomePage/>}/>
+                <Route path="/gallery" element={<ImageGalleryPage/>}/>
             </Route>
             <Route path="/login" element={<LoginPage/>}/>
             <Route path="/signup" element={<SignupPage/>}/>
@@ -98,10 +103,18 @@ const App = () => {
                         <Route path="admin/audit" element={<AuditLogPage/>}/>
                         <Route path="admin/observability" element={<ObservabilityPage/>}/>
                         <Route path="admin/logs" element={<LokiLogsPage/>}/>
+                        <Route path="admin/applicationTests" element={<ApplicationTestsPage/>}/>
                     </Route>
                     <Route element={<ProtectedRoute requiredRole="SUPER_ADMIN"/>}>
                         <Route path="super-admin/observability" element={<ObservabilityPage/>}/>
                         <Route path="super-admin/logs" element={<LokiLogsPage/>}/>
+                    </Route>
+                </Route>
+                <Route element={<ProtectedRoute
+                    requiredAnyRole={["ADMIN", "SUPER_ADMIN"]}
+                />}>
+                    <Route path="/api/admin/applicationTests" element={<AppLayout/>}>
+                        <Route index element={<ApplicationTestsPage/>}/>
                     </Route>
                 </Route>
             </Route>
@@ -116,6 +129,7 @@ const App = () => {
             <Route path="/admin/audit" element={<Navigate to="/app/admin/audit" replace/>}/>
             <Route path="/admin/observability" element={<Navigate to="/app/admin/observability" replace/>}/>
             <Route path="/admin/logs" element={<Navigate to="/app/admin/logs" replace/>}/>
+            <Route path="/admin/applicationTests" element={<Navigate to="/app/admin/applicationTests" replace/>}/>
             <Route path="/super-admin/observability" element={<Navigate to="/app/super-admin/observability" replace/>}/>
             <Route path="/super-admin/logs" element={<Navigate to="/app/super-admin/logs" replace/>}/>
             <Route path="/403" element={<AccessDeniedPage/>}/>

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node scripts/vite-lan-host.mjs",
     "build": "vite build",
-    "preview": "node scripts/vite-lan-host.mjs preview"
+    "preview": "node scripts/vite-lan-host.mjs preview",
+    "load-test:api": "node scripts/load-test-api.mjs",
+    "tunnel:api": "powershell -ExecutionPolicy Bypass -File scripts/start-api-tunnel.ps1"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.76.1",

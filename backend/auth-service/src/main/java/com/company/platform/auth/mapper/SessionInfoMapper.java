@@ -46,9 +46,9 @@ public class SessionInfoMapper {
                 : userAgent.contains("Safari/") ? "Safari"
                 : "Browser";
         String os = userAgent.contains("Windows") ? "Windows"
-                : userAgent.contains("Mac OS X") ? "macOS"
                 : userAgent.contains("Android") ? "Android"
                 : userAgent.contains("iPhone") || userAgent.contains("iPad") ? "iOS"
+                : userAgent.contains("Mac OS X") ? "macOS"
                 : userAgent.contains("Linux") ? "Linux"
                 : "Unknown OS";
         String deviceType = userAgent.contains("Mobile") || userAgent.contains("Android") || userAgent.contains("iPhone") ? "Mobile"

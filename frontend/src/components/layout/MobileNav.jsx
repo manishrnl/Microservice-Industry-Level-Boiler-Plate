@@ -1,7 +1,7 @@
 import {NavLink} from "react-router-dom";
 import {usePermission} from "../../hooks/usePermission";
 import {mainLinks} from "./Sidebar";
-import {History, RadioTower, Users} from "lucide-react";
+import {FlaskConical, History, RadioTower, Users} from "lucide-react";
 
 const MobileNav = () => {
     const {isAdmin} = usePermission();
@@ -9,10 +9,11 @@ const MobileNav = () => {
         {label: "Users", to: "/app/admin/users", Icon: Users},
         {label: "Audit", to: "/app/admin/audit", Icon: History},
         {label: "Ops", to: "/app/admin/observability", Icon: RadioTower},
+        {label: "Tests", to: "/app/admin/applicationTests", Icon: FlaskConical},
         {label: "Logs", to: "/app/admin/logs", Icon: RadioTower}
     ] : [];
     const links = isAdmin()
-        ? [...mainLinks.slice(0, 3), ...adminLinks].slice(0, 7)
+        ? [...mainLinks.slice(0, 2), ...adminLinks].slice(0, 7)
         : mainLinks.slice(0, 5);
 
     return <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur dark:border-white/10 dark:bg-slate-950/95 lg:hidden">

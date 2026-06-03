@@ -16,6 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 @Component
 @RequiredArgsConstructor
 public class AuthBootstrapData implements ApplicationRunner {
@@ -39,9 +42,7 @@ public class AuthBootstrapData implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        Role userRole = role(RoleType.USER);
-        Role adminRole = role(RoleType.ADMIN);
-        Role superAdminRole = role(RoleType.SUPER_ADMIN);
+        Map<RoleType, Role> roles = seedRoles();
 
         String email = normalizeEmail(superAdminEmail);
         boolean existingUser = userRepository.existsByEmailIgnoreCase(email);
@@ -62,10 +63,18 @@ public class AuthBootstrapData implements ApplicationRunner {
         user.setAccountStatus(ACCOUNT_STATUS_ACTIVE);
         User saved = userRepository.save(user);
 
-        assign(saved, userRole);
-        assign(saved, adminRole);
-        assign(saved, superAdminRole);
+        assign(saved, roles.get(RoleType.USER));
+        assign(saved, roles.get(RoleType.ADMIN));
+        assign(saved, roles.get(RoleType.SUPER_ADMIN));
         demoDataService.provision(saved);
+    }
+
+    private Map<RoleType, Role> seedRoles() {
+        Map<RoleType, Role> roles = new EnumMap<>(RoleType.class);
+        for (RoleType roleType : RoleType.values()) {
+            roles.put(roleType, role(roleType));
+        }
+        return roles;
     }
 
     private Role role(RoleType roleType) {

@@ -1,10 +1,49 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 resources:
-  - ../../base/api-gateway
-  - ../../base/auth-service
-  - ../../base/user-service
-  - ../../base/notification-service
-  - ../../base/payment-service
-  - ../../base/file-service
-  - ../../base/ai-service
-  - ../../base/audit-service
+  - ../../base
+
 namespace: microservice-platform
+
+images:
+  - name: microservice-industry-config-server
+    newName: ghcr.io/your-github-user/microservice-industry-config-server
+    newTag: 0.1.0
+  - name: microservice-industry-discovery-server
+    newName: ghcr.io/your-github-user/microservice-industry-discovery-server
+    newTag: 0.1.0
+  - name: microservice-industry-api-gateway
+    newName: ghcr.io/your-github-user/microservice-industry-api-gateway
+    newTag: 0.1.0
+  - name: microservice-industry-auth-service
+    newName: ghcr.io/your-github-user/microservice-industry-auth-service
+    newTag: 0.1.0
+  - name: microservice-industry-user-service
+    newName: ghcr.io/your-github-user/microservice-industry-user-service
+    newTag: 0.1.0
+  - name: microservice-industry-notification-service
+    newName: ghcr.io/your-github-user/microservice-industry-notification-service
+    newTag: 0.1.0
+  - name: microservice-industry-payment-service
+    newName: ghcr.io/your-github-user/microservice-industry-payment-service
+    newTag: 0.1.0
+  - name: microservice-industry-file-service
+    newName: ghcr.io/your-github-user/microservice-industry-file-service
+    newTag: 0.1.0
+  - name: microservice-industry-ai-service
+    newName: ghcr.io/your-github-user/microservice-industry-ai-service
+    newTag: 0.1.0
+  - name: microservice-industry-audit-service
+    newName: ghcr.io/your-github-user/microservice-industry-audit-service
+    newTag: 0.1.0
+
+patches:
+  - path: config-patch.yaml
+  - target:
+      kind: Ingress
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging-api.your-domain.example

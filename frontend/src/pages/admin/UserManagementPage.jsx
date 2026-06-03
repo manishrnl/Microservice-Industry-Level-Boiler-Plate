@@ -1,26 +1,12 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {LoaderCircle, RefreshCw, Save, Search} from "lucide-react";
-import {useEffect, useMemo, useState} from "react";
+import {useMemo, useState} from "react";
 import {apiClient} from "../../api/axiosInstance";
 import {endpoints} from "../../api/endpoints";
 import {PageWrapper} from "../../components/common/PageWrapper";
 import {asArray, unwrapApiData} from "../../utils/responseUtils";
 
 const roleOptions = ["SUPER_ADMIN", "ADMIN", "EDITOR", "CREATOR", "VIEWER", "USER"];
-const USERS_CACHE_KEY = "platform.adminUsers";
-
-const readCachedUsers = () => {
-    try {
-        const cached = localStorage.getItem(USERS_CACHE_KEY);
-        return cached ? JSON.parse(cached) : undefined;
-    } catch {
-        return undefined;
-    }
-};
-
-const writeCachedUsers = (users) => {
-    localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(users));
-};
 
 const UserManagementPage = () => {
     const queryClient = useQueryClient();
@@ -31,17 +17,14 @@ const UserManagementPage = () => {
     const users = useQuery({
         queryKey: ["users"],
         queryFn: async () => asArray((await apiClient.get(endpoints.users.list)).data),
-        initialData: readCachedUsers,
-        gcTime: Infinity,
-        staleTime: Infinity,
-        refetchOnWindowFocus: false
+        refetchOnMount: "always",
+        refetchOnWindowFocus: true
     });
     const updateRole = useMutation({
         mutationFn: async ({userId, roles}) => unwrapApiData((await apiClient.put(endpoints.users.role(userId), {roles})).data),
         onSuccess: (saved) => {
             const nextUsers = (queryClient.getQueryData(["users"]) ?? []).map((user) => user.userId === saved.userId ? saved : user);
             queryClient.setQueryData(["users"], nextUsers);
-            writeCachedUsers(nextUsers);
             setDraftRoles((current) => {
                 const next = {...current};
                 delete next[saved.userId];
@@ -49,11 +32,6 @@ const UserManagementPage = () => {
             });
         }
     });
-    useEffect(() => {
-        if (Array.isArray(users.data)) {
-            writeCachedUsers(users.data);
-        }
-    }, [users.data]);
     const visibleUsers = useMemo(() => {
         const term = search.trim().toLowerCase();
         return [...(users.data ?? [])]
@@ -160,7 +138,7 @@ const UserManagementPage = () => {
                 </div>
                 <button
                     onClick={() => updateRole.mutate({userId: user.userId, roles: rolesFor(user)})}
-                    disabled={updateRole.isPending || !draftRoles[user.userId]}
+                    disabled={updateRole.isPending || users.isFetching || !draftRoles[user.userId]}
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 px-3 font-medium hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
                 >
                     {updateRole.isPending ? <LoaderCircle className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}

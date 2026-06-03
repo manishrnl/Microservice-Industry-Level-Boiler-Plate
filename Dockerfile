@@ -26,7 +26,8 @@ RUN --mount=type=cache,target=/root/.m2 set -eux; \
         if [ "$attempt" = "5" ]; then exit 1; fi; \
         sleep $((attempt * 15)); \
     done; \
-    cp "backend/${MODULE_PATH}"/target/*.jar /tmp/app.jar
+    cp "backend/${MODULE_PATH}"/target/*.jar /tmp/app.jar; \
+    cp -r backend/config-server-repo /tmp/config-server-repo
 
 # =========================
 # Stage 2: Runtime
@@ -41,6 +42,7 @@ RUN apt-get update &&     apt-get install -y --no-install-recommends curl &&    
 # Copy generated jar
 COPY --from=build /tmp/app.jar app.jar
 COPY --from=build /tmp/README.md README.md
+COPY --from=build /tmp/config-server-repo /app/config-server-repo
 
 EXPOSE 10000
 

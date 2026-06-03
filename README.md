@@ -179,7 +179,7 @@ Copy-Item .env.example .env
 On macOS/Linux:
 
 ```bash
-cp .env.example .env
+cp .env-dev.example .env-dev
 ```
 
 The example file contains safe local defaults for Docker networking. Update these values when needed:

@@ -21,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -51,7 +50,7 @@ public class AuthUserAdminService {
     }
 
     public UserDto get(UUID userId) {
-        AuthAccountDto account = account(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
+        AuthAccountDto account = account(userId).orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
         UserProfile profile = profiles.findById(userId).orElse(null);
         return userAccountMapper.toUserDto(account, profile);
     }
@@ -64,7 +63,7 @@ public class AuthUserAdminService {
     public UserDto updateRoles(UUID userId, Set<RoleType> requestedRoles) {
         Set<RoleType> roles = userAccountMapper.defaultRoles(requestedRoles);
         AuthUser user = authUsers.findOneById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User not found"));
+                .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
         user.setRoles(resolveRoles(roles));
         AuthAccountDto account = userAccountMapper.toAuthAccountDto(authUsers.save(user));
         UserProfile profile = profiles.findById(userId).orElse(null);

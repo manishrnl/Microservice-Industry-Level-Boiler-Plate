@@ -27,6 +27,7 @@ spring:
     open-in-view: false
   data:
     redis:
+      url: ${REDIS_DATABASE_URL:}
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:}

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+data:
+  SPRING_PROFILES_ACTIVE: "dev"
+  BACKEND_PUBLIC_URL: "http://api.localhost"
+  FRONTEND_PUBLIC_URL: "http://localhost:5173"
+  FILE_PUBLIC_BASE_URL: "http://api.localhost"
+  FILE_DOWNLOAD_BASE_URL: "http://api.localhost"
+  SECURITY_COOKIES_SECURE: "false"
+  SECURITY_COOKIES_SAME_SITE: "Lax"
+  MAIL_DEBUG: "true"

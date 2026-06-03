@@ -6,8 +6,10 @@ services:
     pull_policy: never
     build:
       context: .
-      dockerfile: Dockerfile-config-server
+      args:
+        MODULE: config-server
     environment:
+      SPRING_PROFILES_ACTIVE: ${CONFIG_SERVER_BACKEND:-native}
       CONFIG_SERVER_BACKEND: ${CONFIG_SERVER_BACKEND}
       CONFIG_GIT_URI: ${CONFIG_GIT_URI}
       CONFIG_GIT_LABEL: ${CONFIG_GIT_LABEL}
@@ -82,10 +84,6 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_SSL_ENABLED: ${REDIS_SSL_ENABLED}
     ports:
       - "${API_GATEWAY_HOST_PORT:-8080}:8080"
     depends_on:
@@ -93,8 +91,8 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      loki:
+        condition: service_started
       auth-service:
         condition: service_started
       user-service:
@@ -128,19 +126,12 @@ services:
         MODULE: auth-service
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
-      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL}
-      AUTH_DATABASE_USERNAME: ${AUTH_DATABASE_USERNAME}
-      AUTH_DATABASE_PASSWORD: ${AUTH_DATABASE_PASSWORD}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_SSL_ENABLED: ${REDIS_SSL_ENABLED}
       JWT_KEY_ID: ${JWT_KEY_ID}
       JWT_ISSUER: ${JWT_ISSUER}
       JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES}
@@ -175,10 +166,6 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
@@ -199,19 +186,11 @@ services:
     environment:
       CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
-      USER_DATABASE_URL: ${USER_DATABASE_URL}
-      USER_DATABASE_USERNAME: ${USER_DATABASE_USERNAME}
-      USER_DATABASE_PASSWORD: ${USER_DATABASE_PASSWORD}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_SSL_ENABLED: ${REDIS_SSL_ENABLED}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
     ports:
       - "${USER_SERVICE_HOST_PORT:-8082}:8082"
     depends_on:
@@ -219,12 +198,6 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka-topics:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health || exit 1"]
       interval: 10s
@@ -250,10 +223,6 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      NOTIFICATION_DATABASE_URL: ${NOTIFICATION_DATABASE_URL}
-      NOTIFICATION_DATABASE_USERNAME: ${NOTIFICATION_DATABASE_USERNAME}
-      NOTIFICATION_DATABASE_PASSWORD: ${NOTIFICATION_DATABASE_PASSWORD}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       MAIL_HOST: ${MAIL_HOST}
       MAIL_PORT: ${MAIL_PORT}
     ports:
@@ -263,10 +232,6 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
-      postgres:
-        condition: service_healthy
-      kafka-topics:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8083/actuator/health || exit 1"]
       interval: 10s
@@ -292,10 +257,6 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      PAYMENT_DATABASE_URL: ${PAYMENT_DATABASE_URL}
-      PAYMENT_DATABASE_USERNAME: ${PAYMENT_DATABASE_USERNAME}
-      PAYMENT_DATABASE_PASSWORD: ${PAYMENT_DATABASE_PASSWORD}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL}
       STRIPE_API_KEY: ${STRIPE_API_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
@@ -308,10 +269,6 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
-      postgres:
-        condition: service_healthy
-      kafka-topics:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8084/actuator/health || exit 1"]
       interval: 10s
@@ -337,9 +294,6 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      FILE_DATABASE_URL: ${FILE_DATABASE_URL}
-      FILE_DATABASE_USERNAME: ${FILE_DATABASE_USERNAME}
-      FILE_DATABASE_PASSWORD: ${FILE_DATABASE_PASSWORD}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -351,8 +305,6 @@ services:
       config-server:
         condition: service_healthy
       discovery-server:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -381,13 +333,6 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      AI_DATABASE_URL: ${AI_DATABASE_URL}
-      AI_DATABASE_USERNAME: ${AI_DATABASE_USERNAME}
-      AI_DATABASE_PASSWORD: ${AI_DATABASE_PASSWORD}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_SSL_ENABLED: ${REDIS_SSL_ENABLED}
       GEMINI_BASE_URL: ${GEMINI_BASE_URL}
       GEMINI_MODEL: ${GEMINI_MODEL}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
@@ -403,10 +348,6 @@ services:
       config-server:
         condition: service_healthy
       discovery-server:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8086/actuator/health || exit 1"]
@@ -433,10 +374,6 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      AUDIT_DATABASE_URL: ${AUDIT_DATABASE_URL}
-      AUDIT_DATABASE_USERNAME: ${AUDIT_DATABASE_USERNAME}
-      AUDIT_DATABASE_PASSWORD: ${AUDIT_DATABASE_PASSWORD}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS}
     ports:
       - "${AUDIT_SERVICE_HOST_PORT:-8087}:8087"
@@ -445,10 +382,6 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
-      postgres:
-        condition: service_healthy
-      kafka-topics:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8087/actuator/health || exit 1"]
       interval: 10s
@@ -458,6 +391,7 @@ services:
     networks: [backend-net]
 
   frontend:
+    profiles: ["frontend"]
     env_file:
       - .env
     image: node:24.15.0-alpine
@@ -479,6 +413,7 @@ services:
     networks: [frontend-net]
 
   postgres:
+    profiles: ["local-postgres"]
     image: postgres:16.4-alpine
     pull_policy: missing
     environment:
@@ -495,6 +430,7 @@ services:
     networks: [backend-net]
 
   redis:
+    profiles: ["local-redis"]
     image: redis:7.4.2-alpine
     pull_policy: missing
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru", "--requirepass", "${REDIS_PASSWORD}"]
@@ -508,6 +444,7 @@ services:
     networks: [backend-net]
 
   kafka:
+    profiles: ["local-kafka"]
     image: apache/kafka:3.7.0
     pull_policy: missing
     environment:
@@ -528,6 +465,7 @@ services:
     networks: [backend-net]
 
   kafka-topics:
+    profiles: ["local-kafka"]
     image: apache/kafka:3.7.0
     pull_policy: missing
     command: >
@@ -552,6 +490,7 @@ services:
     networks: [backend-net]
 
   observability-seeder:
+    profiles: ["observability"]
     image: apache/kafka:3.7.0
     pull_policy: missing
     command: ["sh", "/opt/observability/seed-observability.sh"]
@@ -608,6 +547,7 @@ services:
     networks: [backend-net]
 
   mailhog:
+    profiles: ["local-mail"]
     image: mailhog/mailhog:v1.0.1
     pull_policy: missing
     ports:

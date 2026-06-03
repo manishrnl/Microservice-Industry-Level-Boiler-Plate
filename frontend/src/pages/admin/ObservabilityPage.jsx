@@ -1,6 +1,9 @@
-import {Activity, BarChart3, ExternalLink, Gauge, RadioTower, ServerCog, ShieldCheck} from "lucide-react";
+import {Activity, BarChart3, ExternalLink, Gauge, RadioTower, ServerCog, ShieldCheck, Terminal} from "lucide-react";
 import {env} from "../../config/env";
 import {PageWrapper} from "../../components/common/PageWrapper";
+
+const grafanaExploreUrl = `${env.grafanaUrl}/explore?left=%7B%22datasource%22:%22Loki%22,%22queries%22:%5B%7B%22expr%22:%22%7Bcompose_project%3D%5C%22microservice-industry%5C%22%7D%22%7D%5D%7D`;
+const grafanaSamplesUrl = `${env.grafanaUrl}/d/platform-observability-samples/platform-observability-samples?orgId=1&from=now-30m&to=now`;
 
 const observabilityLinks = [
     {
@@ -8,6 +11,24 @@ const observabilityLinks = [
         href: env.grafanaUrl,
         Icon: BarChart3,
         tone: "bg-orange-100 text-orange-700 ring-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-500/25"
+    },
+    {
+        label: "Grafana Explore",
+        href: grafanaExploreUrl,
+        Icon: BarChart3,
+        tone: "bg-amber-100 text-amber-700 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/25"
+    },
+    {
+        label: "Sample Dashboard",
+        href: grafanaSamplesUrl,
+        Icon: Gauge,
+        tone: "bg-lime-100 text-lime-700 ring-lime-200 dark:bg-lime-500/15 dark:text-lime-300 dark:ring-lime-500/25"
+    },
+    {
+        label: "Loki API",
+        href: env.lokiStatusUrl,
+        Icon: Terminal,
+        tone: "bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/25"
     },
     {
         label: "Prometheus",

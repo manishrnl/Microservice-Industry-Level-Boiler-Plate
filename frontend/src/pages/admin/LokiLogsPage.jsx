@@ -1,17 +1,10 @@
 import {
-    Activity,
     AlertTriangle,
-    BarChart3,
     Check,
     ChevronDown,
-    Clock3,
-    Database,
-    ExternalLink,
     Palette,
-    RadioTower,
     RefreshCw,
     Search,
-    ServerCog,
     Terminal
 } from "lucide-react";
 import {useMemo, useState} from "react";
@@ -19,12 +12,15 @@ import {useQuery} from "@tanstack/react-query";
 import {apiClient} from "../../api/axiosInstance";
 import {endpoints} from "../../api/endpoints";
 import {PageWrapper} from "../../components/common/PageWrapper";
-import {env} from "../../config/env";
 
 const fallbackServices = ["api-gateway", "auth-service", "user-service", "notification-service", "payment-service", "file-service", "ai-service", "audit-service", "frontend", "postgres", "redis", "kafka", "grafana", "prometheus", "loki", "promtail"];
 const levels = ["", "ERROR", "WARN", "SUCCESS", "INFO", "DEBUG", "TRACE"];
 const severityOrder = ["ERROR", "WARN", "SUCCESS", "INFO", "DEBUG", "TRACE", "LOG"];
 const selectorBackedLevels = new Set(["ERROR", "WARN", "INFO", "DEBUG", "TRACE"]);
+const LOKI_QUERY_LIMIT_MAX = 1000;
+const LOKI_DEFAULT_LIMIT = "1000";
+const LOKI_DEFAULT_RANGE = String(60 * 60 * 1000);
+const defaultFilters = {service: "", level: "", q: "", range: LOKI_DEFAULT_RANGE, limit: LOKI_DEFAULT_LIMIT, from: "", to: ""};
 const levelThemes = {
     ERROR: {
         label: "ERROR",
@@ -241,11 +237,17 @@ const logPanelThemes = {
 };
 const ranges = [
     {label: "15m", value: String(15 * 60 * 1000)},
+    {label: "20m", value: String(20 * 60 * 1000)},
     {label: "1h", value: String(60 * 60 * 1000)},
     {label: "6h", value: String(6 * 60 * 60 * 1000)},
-    {label: "24h", value: String(24 * 60 * 60 * 1000)}
+    {label: "24h", value: String(24 * 60 * 60 * 1000)},
+    {label: "7d", value: String(7 * 24 * 60 * 60 * 1000)},
+    {label: "30d", value: String(30 * 24 * 60 * 60 * 1000)}
 ];
 const quickFilters = [
+    {label: "Last 20m", value: {range: String(20 * 60 * 1000), from: "", to: ""}},
+    {label: "Last 100", value: {limit: "100"}},
+    {label: "Last 1000", value: {limit: "1000"}},
     {label: "401", value: {q: "401", level: ""}},
     {label: "Errors", value: {q: "", level: "ERROR"}},
     {label: "Warnings", value: {q: "", level: "WARN"}},
@@ -256,79 +258,8 @@ const quickFilters = [
     {label: "Startup", value: {q: "Started", level: ""}},
     {label: "Flyway", value: {q: "Flyway", level: ""}}
 ];
-const grafanaExploreUrl = `${env.grafanaUrl}/explore?left=%7B%22datasource%22:%22Loki%22,%22queries%22:%5B%7B%22expr%22:%22%7Bcompose_project%3D%5C%22microservice-industry%5C%22%7D%22%7D%5D%7D`;
-const grafanaSamplesUrl = `${env.grafanaUrl}/d/platform-observability-samples/platform-observability-samples?orgId=1&from=now-30m&to=now`;
-const prometheusQueryUrl = (expr) => `${env.prometheusUrl}/query?g0.expr=${encodeURIComponent(expr)}&g0.tab=graph&g0.range_input=30m`;
-const zipkinSamplesUrl = `${env.zipkinUrl}/zipkin/?serviceName=api-gateway&lookback=1h&limit=10`;
-const quickViewLinks = [
-    {
-        label: "All Samples",
-        context: "Grafana dashboard",
-        detail: "Prometheus, Zipkin, and Kafka sample signals in one place.",
-        href: grafanaSamplesUrl,
-        Icon: BarChart3,
-        tone: "bg-orange-100 text-orange-700 ring-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-500/25"
-    },
-    {
-        label: "Prometheus",
-        context: "Sample metrics",
-        detail: "Request counters, p95 latency, and seeded platform metrics.",
-        href: prometheusQueryUrl("platform_sample_requests_total"),
-        Icon: Activity,
-        tone: "bg-red-100 text-red-700 ring-red-200 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-500/25"
-    },
-    {
-        label: "Zipkin",
-        context: "Sample traces",
-        detail: "Login and payment traces across gateway and services.",
-        href: zipkinSamplesUrl,
-        Icon: RadioTower,
-        tone: "bg-violet-100 text-violet-700 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/25"
-    },
-    {
-        label: "Kafka",
-        context: "Sample events",
-        detail: "Produced event counts for auth, user, payment, and audit topics.",
-        href: prometheusQueryUrl("platform_kafka_sample_messages_total"),
-        Icon: Database,
-        tone: "bg-cyan-100 text-cyan-700 ring-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:ring-cyan-500/25"
-    }
-];
-const relatedLinks = [
-    {
-        label: "Grafana Explore",
-        href: grafanaExploreUrl,
-        Icon: BarChart3,
-        tone: "bg-orange-100 text-orange-700 ring-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-500/25"
-    },
-    {
-        label: "Loki API",
-        href: env.lokiStatusUrl,
-        Icon: Terminal,
-        tone: "bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/25"
-    },
-    {
-        label: "Prometheus",
-        href: env.prometheusUrl,
-        Icon: Database,
-        tone: "bg-red-100 text-red-700 ring-red-200 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-500/25"
-    },
-    {
-        label: "Zipkin",
-        href: env.zipkinUrl,
-        Icon: RadioTower,
-        tone: "bg-violet-100 text-violet-700 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/25"
-    },
-    {
-        label: "Gateway Health",
-        href: env.gatewayHealthUrl,
-        Icon: ServerCog,
-        tone: "bg-sky-100 text-sky-700 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-500/25"
-    }
-];
-
 const LokiLogsPage = () => {
-    const [filters, setFilters] = useState({service: "", level: "", q: "", range: ranges[1].value, limit: "200"});
+    const [filters, setFilters] = useState(defaultFilters);
     const [logTheme, setLogTheme] = useState("midnight");
     const [themeMenuOpen, setThemeMenuOpen] = useState(false);
     const services = useQuery({
@@ -346,15 +277,16 @@ const LokiLogsPage = () => {
     const logql = useMemo(() => buildLogQl(filters), [filters]);
     const queryShape = useMemo(() => ({
         query: logql,
-        limit: filters.limit,
+        limit: String(clampLogLimit(filters.limit)),
         direction: "BACKWARD",
-        range: filters.range
-    }), [filters.limit, filters.range, logql]);
+        range: filters.range,
+        from: filters.from,
+        to: filters.to
+    }), [filters.from, filters.limit, filters.range, filters.to, logql]);
     const logs = useQuery({
         queryKey: ["loki-logs", queryShape],
         queryFn: async () => {
-            const end = new Date();
-            const start = new Date(end.getTime() - Number(queryShape.range || ranges[1].value));
+            const {start, end} = resolveFilterWindow(queryShape);
             const params = {
                 query: queryShape.query,
                 limit: queryShape.limit,
@@ -364,56 +296,20 @@ const LokiLogsPage = () => {
             };
             return (await apiClient.get(endpoints.observability.lokiQueryRange, {params})).data;
         },
-        refetchInterval: 10000
+        refetchInterval: filters.from || filters.to ? false : 15000
     });
-    const rows = useMemo(() => extractRows(logs.data), [logs.data]);
+    const rows = useMemo(() => extractRows(logs.data).slice(0, clampLogLimit(filters.limit)), [filters.limit, logs.data]);
     const levelCounts = useMemo(() => summarizeLevels(rows), [rows]);
     const selectedLogTheme = logPanelTheme(logTheme);
     const selectedLogThemeOption = logThemeOptions.find((theme) => theme.value === logTheme) ?? logThemeOptions[0];
     const searchTerm = filters.q.trim();
     const updateFilter = (field) => (event) => setFilters((current) => ({...current, [field]: event.target.value}));
+    const updateRangeFilter = (event) => setFilters((current) => ({...current, range: event.target.value, from: "", to: ""}));
     const applyQuickFilter = (value) => setFilters((current) => ({...current, ...value}));
-    const clearFilters = () => setFilters((current) => ({...current, service: "", level: "", q: ""}));
+    const clearFilters = () => setFilters(defaultFilters);
 
     return <PageWrapper title="Loki Logs">
         <div className="space-y-5">
-            <section className="rounded-md border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Observability quick views</h2>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Open the seeded Prometheus, Zipkin, and Kafka views directly.</p>
-                    </div>
-                    <a
-                        href={grafanaSamplesUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex h-10 items-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-teal-300 dark:text-slate-950 dark:hover:bg-teal-200"
-                    >
-                        <BarChart3 className="h-4 w-4"/>
-                        Open sample dashboard
-                    </a>
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    {quickViewLinks.map(({label, context, detail, href, Icon, tone}) => <a
-                        key={label}
-                        href={href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group rounded-md border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md dark:border-white/10 dark:hover:border-white/20 dark:hover:bg-white/[0.04]"
-                    >
-                        <span className="flex items-start justify-between gap-4">
-                            <span className={`grid h-10 w-10 place-items-center rounded-md ring-1 ${tone}`}>
-                                <Icon className="h-5 w-5"/>
-                            </span>
-                            <ExternalLink className="h-4 w-4 text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-white"/>
-                        </span>
-                        <span className="mt-4 block text-[11px] font-bold uppercase tracking-wide text-slate-400">{context}</span>
-                        <span className="mt-1 block text-base font-semibold text-slate-950 dark:text-white">{label}</span>
-                        <span className="mt-2 block min-h-10 text-sm text-slate-500 dark:text-slate-400">{detail}</span>
-                    </a>)}
-                </div>
-            </section>
-
             <section className="rounded-md border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -422,7 +318,7 @@ const LokiLogsPage = () => {
                         </span>
                         <div>
                             <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Docker and service logs</h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">{rows.length} entries from Loki</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">{rows.length} entries from Loki - stored on Loki disk for 30 days</p>
                         </div>
                     </div>
                     <button
@@ -435,7 +331,7 @@ const LokiLogsPage = () => {
                     </button>
                 </div>
 
-                <div className="mt-4 grid gap-3 xl:grid-cols-[170px_120px_minmax(220px,1fr)_110px_100px_auto]">
+                <div className="mt-4 grid gap-3 xl:grid-cols-[170px_120px_minmax(220px,1fr)_110px_100px_190px_190px_auto]">
                     <Select value={filters.service} onChange={updateFilter("service")} options={serviceOptions} label="All services"/>
                     <Select value={filters.level} onChange={updateFilter("level")} options={levels} label="All levels"/>
                     <label className="relative block">
@@ -447,8 +343,10 @@ const LokiLogsPage = () => {
                             className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                         />
                     </label>
-                    <Select value={filters.range} onChange={updateFilter("range")} options={ranges.map((range) => range.value)} labels={Object.fromEntries(ranges.map((range) => [range.value, range.label]))} label="Range"/>
+                    <Select value={filters.range} onChange={updateRangeFilter} options={ranges.map((range) => range.value)} labels={Object.fromEntries(ranges.map((range) => [range.value, range.label]))} label="Range"/>
                     <Select value={filters.limit} onChange={updateFilter("limit")} options={["50", "100", "200", "500", "1000"]} label="Limit"/>
+                    <DateTimeInput label="From" value={filters.from} onChange={updateFilter("from")}/>
+                    <DateTimeInput label="To" value={filters.to} onChange={updateFilter("to")}/>
                     <button
                         type="button"
                         onClick={clearFilters}
@@ -541,7 +439,7 @@ const LokiLogsPage = () => {
                                 {rows.map((row) => {
                                     const theme = levelTheme(row.level, logTheme);
                                     return <div
-                                        key={`${row.timestamp}-${row.service}-${row.index}`}
+                                        key={logRowKey(row)}
                                         className={`grid grid-cols-[170px_112px_170px_minmax(520px,1fr)] border-t px-3 py-2 transition-colors ${theme.row}`}
                                     >
                                         <span className={theme.time}>{formatLokiTime(row.timestamp)}</span>
@@ -549,8 +447,8 @@ const LokiLogsPage = () => {
                                             {displayLevel(row.level)}
                                         </span>
                                         <span className={`truncate font-semibold ${theme.service}`} title={row.service}>{row.service}</span>
-                                        <span className={`break-all ${theme.message}`}>
-                                            <HighlightedText value={row.message} search={searchTerm}/>
+                                        <span className={`min-w-0 ${theme.message}`}>
+                                            <LogMessage formatted={row.formattedMessage} search={searchTerm}/>
                                         </span>
                                     </div>;
                                 })}
@@ -565,24 +463,6 @@ const LokiLogsPage = () => {
                         Loki query failed. Check that Loki and Promtail are running.
                     </p>}
             </section>
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {relatedLinks.map(({label, href, Icon, tone}) => <a
-                    key={label}
-                    href={href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group rounded-md border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg dark:border-white/10 dark:bg-slate-950 dark:hover:border-white/20"
-                >
-                    <span className="flex items-start justify-between gap-4">
-                        <span className={`grid h-10 w-10 place-items-center rounded-md ring-1 ${tone}`}>
-                            <Icon className="h-5 w-5"/>
-                        </span>
-                        <ExternalLink className="h-4 w-4 text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-white"/>
-                    </span>
-                    <span className="mt-4 block text-sm font-semibold text-slate-950 dark:text-white">{label}</span>
-                    <span className="mt-3 block break-all text-xs text-slate-500 dark:text-slate-400">{href}</span>
-                </a>)}
-            </section>
         </div>
     </PageWrapper>;
 };
@@ -594,6 +474,36 @@ const Select = ({value, onChange, options, label, labels = {}}) => <select
 >
     {options.map((option) => <option key={option || label} value={option}>{option ? labels[option] || option : label}</option>)}
 </select>;
+
+const DateTimeInput = ({label, value, onChange}) => <label className="relative block">
+    <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[10px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">{label}</span>
+    <input
+        type="datetime-local"
+        value={value}
+        onChange={onChange}
+        className="h-10 w-full rounded-md border border-slate-200 bg-white pl-12 pr-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+    />
+</label>;
+
+const LogMessage = ({formatted, search}) => {
+    const message = formatted ?? formatLogMessage("");
+    return <span className="block min-w-0" title={message.raw}>
+        <span className="block break-words text-[12px] leading-5">
+            <HighlightedText value={message.summary} search={search}/>
+        </span>
+        {!!message.details.length && <span className="mt-1 flex flex-wrap gap-1.5">
+            {message.details.map((detail) => <span
+                key={`${detail.label}-${detail.value}`}
+                className="inline-flex max-w-[260px] items-center gap-1 rounded border border-current/20 bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 opacity-90"
+            >
+                <span className="shrink-0 uppercase opacity-60">{detail.label}</span>
+                <span className="min-w-0 truncate font-black">
+                    <HighlightedText value={detail.value} search={search}/>
+                </span>
+            </span>)}
+        </span>}
+    </span>;
+};
 
 const HighlightedText = ({value, search}) => {
     const parts = highlightParts(value, search);
@@ -658,18 +568,51 @@ const extractRows = (payload) => {
         const labels = stream.stream ?? {};
         return (stream.values ?? []).map(([timestamp, line], index) => {
             const parsed = parseLogLine(line);
+            const message = parsed.message || String(line ?? "");
             const level = classifyLogLevel(labels.level || parsed.level, `${line ?? ""} ${parsed.message ?? ""}`);
             return {
                 index,
                 timestamp,
                 service: labels.service || labels.container || "unknown",
                 level,
-                message: parsed.message || String(line ?? ""),
+                message,
+                formattedMessage: formatLogMessage(message),
                 labels
             };
         });
     }).sort((a, b) => compareTimestamp(b.timestamp, a.timestamp));
 };
+
+const resolveFilterWindow = (filters) => {
+    const now = new Date();
+    const to = parseDateTimeLocal(filters.to) ?? now;
+    const rangeMs = Number(filters.range || LOKI_DEFAULT_RANGE);
+    const safeRangeMs = Number.isFinite(rangeMs) && rangeMs > 0 ? rangeMs : Number(LOKI_DEFAULT_RANGE);
+    const from = parseDateTimeLocal(filters.from) ?? new Date(to.getTime() - safeRangeMs);
+    if (from.getTime() > to.getTime()) {
+        return {start: to, end: from};
+    }
+    return {start: from, end: to};
+};
+
+const parseDateTimeLocal = (value) => {
+    const text = String(value ?? "").trim();
+    if (!text) {
+        return null;
+    }
+    const date = new Date(text);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const clampLogLimit = (limit) => {
+    const value = Number(limit || LOKI_DEFAULT_LIMIT);
+    if (!Number.isFinite(value)) {
+        return Number(LOKI_DEFAULT_LIMIT);
+    }
+    return Math.max(1, Math.min(value, LOKI_QUERY_LIMIT_MAX));
+};
+
+const logRowKey = (row) => `${row.timestamp}|${row.service}|${row.message}`;
 
 const parseLogLine = (line) => {
     const value = stripAnsi(line).trim();
@@ -683,6 +626,172 @@ const parseLogLine = (line) => {
     } catch {
         return {message: value, level: levelFromLine(value)};
     }
+};
+
+const formatLogMessage = (message) => {
+    const raw = stripAnsi(message).trim();
+    const fields = parseKeyValuePairs(raw);
+    const gateway = formatGatewayRequest(raw, fields);
+    if (gateway) {
+        return gateway;
+    }
+    if (Object.keys(fields).length >= 2) {
+        return formatKeyValueMessage(raw, fields);
+    }
+    return {
+        summary: ensurePeriod(humanizePlainText(raw)),
+        details: [],
+        raw
+    };
+};
+
+const formatGatewayRequest = (raw, fields) => {
+    if (!raw.includes("gateway_request") && !(fields.method && fields.path && (fields.status || fields.durationMs))) {
+        return null;
+    }
+    const status = raw.match(/\bstatus=(\d{3})(?:\s+([A-Z]+))?/i);
+    const statusText = status ? [status[1], status[2]].filter(Boolean).join(" ") : fields.status;
+    const duration = fields.durationMs ? `${fields.durationMs}ms` : fields.duration;
+    const summary = `${fields.method || "Request"} ${fields.path || "route"} returned ${statusText || "a response"}${duration ? ` in ${duration}` : ""}.`;
+    return {
+        summary,
+        details: compactDetails([
+            ["Method", fields.method],
+            ["Path", fields.path],
+            ["Status", statusText],
+            ["Duration", duration],
+            ["User", shortenValue(fields.userId, 18)]
+        ]),
+        raw
+    };
+};
+
+const formatKeyValueMessage = (raw, fields) => {
+    const actor = formatActor(fields);
+    let summary;
+    if (fields.msg) {
+        summary = formatMessageWithContext(actor, fields);
+    } else if (fields.caller?.includes("metrics.go") || fields.query_type || fields.returned_lines || fields.total_lines) {
+        summary = formatLokiMetric(actor, fields);
+    } else if (fields.status || fields.duration) {
+        summary = `${actor} completed${fields.query_type ? ` ${humanizeToken(fields.query_type)}` : ""}${fields.duration ? ` in ${fields.duration}` : ""}${fields.status ? ` with status ${fields.status}` : ""}.`;
+    } else {
+        summary = ensurePeriod(humanizePlainText(raw.split(/\s+/).slice(0, 14).join(" ")));
+    }
+    return {
+        summary: ensurePeriod(summary),
+        details: buildReadableDetails(fields),
+        raw
+    };
+};
+
+const formatMessageWithContext = (actor, fields) => {
+    const cleanMessage = humanizePlainText(fields.msg);
+    if (/executing query/i.test(cleanMessage)) {
+        const queryKind = fields.type || fields.query_type || "log";
+        return `${actor} started ${humanizeToken(queryKind)} query${fields.length ? ` for ${fields.length}` : ""}${fields.step ? ` with ${fields.step} steps` : ""}.`;
+    }
+    if (/completed recalculate owned streams job/i.test(cleanMessage)) {
+        return `${actor} completed recalculating owned streams.`;
+    }
+    return `${actor} ${lowerFirst(cleanMessage)}`;
+};
+
+const formatLokiMetric = (actor, fields) => {
+    const queryType = humanizeToken(fields.query_type || fields.type || "log");
+    if (fields.query_type === "labels") {
+        return `${actor} loaded ${fields.label || "labels"} in ${fields.duration || "a short time"}${fields.status ? ` with status ${fields.status}` : ""}.`;
+    }
+    if (fields.query_type === "stats") {
+        return `${actor} calculated log stats in ${fields.duration || "a short time"}${fields.status ? ` with status ${fields.status}` : ""}.`;
+    }
+    const returned = fields.returned_lines ?? fields.total_entries;
+    const scanned = fields.total_lines;
+    const lineSummary = returned || scanned
+        ? ` Returned ${formatNumber(returned ?? 0)}${scanned ? ` of ${formatNumber(scanned)} scanned lines` : " entries"}.`
+        : "";
+    return `${actor} completed ${queryType} query${fields.duration ? ` in ${fields.duration}` : ""}${fields.status ? ` with status ${fields.status}` : ""}.${lineSummary}`;
+};
+
+const buildReadableDetails = (fields) => compactDetails([
+    ["Status", fields.status],
+    ["Duration", fields.duration || (fields.durationMs ? `${fields.durationMs}ms` : "")],
+    ["Returned", fields.returned_lines],
+    ["Total", fields.total_lines],
+    ["Type", fields.query_type || fields.type],
+    ["Range", fields.length],
+    ["Step", fields.step],
+    ["Latency", fields.latency],
+    ["Path", fields.path],
+    ["Method", fields.method],
+    ["Throughput", fields.throughput],
+    ["Caller", fields.caller],
+    ["Trace", shortenValue(fields.traceID || fields.traceId, 18)]
+], 8);
+
+const parseKeyValuePairs = (value) => {
+    const fields = {};
+    const matcher = /([A-Za-z_][\w.-]*)=("(?:\\.|[^"])*"|[^\s]*)/g;
+    let match = matcher.exec(value);
+    while (match) {
+        fields[match[1]] = cleanFieldValue(match[2]);
+        match = matcher.exec(value);
+    }
+    return fields;
+};
+
+const cleanFieldValue = (value) => {
+    const text = String(value ?? "");
+    const unquoted = text.startsWith("\"") && text.endsWith("\"") ? text.slice(1, -1) : text;
+    return unquoted.replace(/\\"/g, "\"").replace(/\\\\/g, "\\").trim();
+};
+
+const formatActor = (fields) => {
+    const source = fields.component || sourceFromCaller(fields.caller) || "service";
+    const actor = humanizeToken(source);
+    return isLokiMetric(fields) ? `Loki ${actor}` : actor;
+};
+
+const sourceFromCaller = (caller) => String(caller ?? "").split(":")[0].replace(/\.[^.]+$/, "");
+
+const isLokiMetric = (fields) => Boolean(fields.org_id || fields.query_hash || fields.caller?.endsWith(".go") || fields.caller?.includes(".go:"));
+
+const humanizePlainText = (value) => String(value ?? "")
+    .replace(/^\d{4}-\d{2}-\d{2}T\S+\s+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const humanizeToken = (value) => String(value ?? "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim();
+
+const lowerFirst = (value) => {
+    const text = String(value ?? "").trim();
+    return text ? `${text.charAt(0).toLowerCase()}${text.slice(1)}` : text;
+};
+
+const ensurePeriod = (value) => {
+    const text = String(value ?? "").trim();
+    return /[.!?]$/.test(text) ? text : `${text}.`;
+};
+
+const compactDetails = (items, limit = 8) => items
+    .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== "")
+    .slice(0, limit)
+    .map(([label, value]) => ({label, value: String(value)}));
+
+const shortenValue = (value, maxLength) => {
+    const text = String(value ?? "").trim();
+    if (text.length <= maxLength) {
+        return text;
+    }
+    return `${text.slice(0, maxLength - 1)}...`;
+};
+
+const formatNumber = (value) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toLocaleString() : String(value ?? "");
 };
 
 const stripAnsi = (value) => String(value ?? "").replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, "");

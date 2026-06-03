@@ -23,6 +23,8 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1/observability")
 public class ObservabilityLogController {
+    private static final int LOKI_QUERY_LIMIT_MAX = 5000;
+
     private final GatewayLogService logs;
     private final ReactiveJwtDecoder jwtDecoder;
     private final WebClient lokiClient;
@@ -76,12 +78,12 @@ public class ObservabilityLogController {
     @GetMapping("/loki/query-range")
     public Mono<Map> lokiQueryRange(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
                                     @RequestParam(value = "query", required = false) String query,
-                                    @RequestParam(value = "limit", defaultValue = "200") int limit,
+                                    @RequestParam(value = "limit", defaultValue = "1000") int limit,
                                     @RequestParam(value = "direction", defaultValue = "BACKWARD") String direction,
                                     @RequestParam(value = "start", required = false) String start,
                                     @RequestParam(value = "end", required = false) String end) {
         String logql = query == null || query.isBlank() ? "{compose_project=\"microservice-industry\"}" : query;
-        int cappedLimit = Math.max(1, Math.min(limit, 1000));
+        int cappedLimit = Math.max(1, Math.min(limit, LOKI_QUERY_LIMIT_MAX));
         String safeDirection = "FORWARD".equalsIgnoreCase(direction) ? "forward" : "backward";
         return requireAdmin(authorization)
                 .then(lokiClient.get()

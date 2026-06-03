@@ -137,13 +137,13 @@ class ObservabilityLogControllerTest {
                 "http://loki.local:3100"
         );
 
-        StepVerifier.create(controller.lokiQueryRange("Bearer admin-token", " ", 5000, "FORWARD", " ", "1720000000"))
+        StepVerifier.create(controller.lokiQueryRange("Bearer admin-token", " ", 6000, "FORWARD", " ", "1720000000"))
                 .assertNext(body -> assertEquals(body.get("status"), "success"))
                 .verifyComplete();
 
         String url = requestedUrls.getFirst();
         assertTrue(url.contains("/loki/api/v1/query_range"));
-        assertTrue(url.contains("limit=1000"));
+        assertTrue(url.contains("limit=5000"));
         assertTrue(url.contains("direction=forward"));
         assertTrue(url.contains("end=1720000000"));
         assertFalse(url.contains("start="));

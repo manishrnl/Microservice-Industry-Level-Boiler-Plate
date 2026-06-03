@@ -12,6 +12,8 @@ import com.company.platform.commons.dto.UserDto;
 import com.company.platform.commons.enums.RoleType;
 import com.company.platform.commons.exception.ApiExceptions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ public class AuthUserAdminService {
     private final UserProfileRepository profiles;
     private final UserAccountMapper userAccountMapper;
 
+    @Cacheable(cacheNames = "adminUsers", key = "T(java.util.Objects).toString(#query, '') + '|' + T(java.util.Objects).toString(#role, '')")
     public List<UserDto> search(String query, String role) {
         String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
         List<AuthAccountDto> accounts = searchAuthAccounts(role);
@@ -49,16 +52,25 @@ public class AuthUserAdminService {
                 .toList();
     }
 
+    @Cacheable(cacheNames = "users", key = "#userId")
     public UserDto get(UUID userId) {
         AuthAccountDto account = account(userId).orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
         UserProfile profile = profiles.findById(userId).orElse(null);
         return userAccountMapper.toUserDto(account, profile);
     }
 
-    public Optional<AuthAccountDto> account(UUID userId) {
-        return authUsers.findOneById(userId).map(userAccountMapper::toAuthAccountDto);
+    @Cacheable(cacheNames = "userAuthAccounts", key = "#userId", unless = "#result == null")
+    public AuthAccountDto accountDto(UUID userId) {
+        return authUsers.findOneById(userId)
+                .map(userAccountMapper::toAuthAccountDto)
+                .orElse(null);
     }
 
+    public Optional<AuthAccountDto> account(UUID userId) {
+        return Optional.ofNullable(accountDto(userId));
+    }
+
+    @CacheEvict(cacheNames = {"adminUsers", "users", "userAuthAccounts"}, allEntries = true)
     @Transactional(transactionManager = "authTransactionManager")
     public UserDto updateRoles(UUID userId, Set<RoleType> requestedRoles) {
         Set<RoleType> roles = userAccountMapper.defaultRoles(requestedRoles);
@@ -70,6 +82,7 @@ public class AuthUserAdminService {
         return userAccountMapper.toUserDto(account, profile);
     }
 
+    @CacheEvict(cacheNames = {"adminUsers", "users", "userAuthAccounts"}, allEntries = true)
     @Transactional(transactionManager = "authTransactionManager")
     public void updateUsername(UUID userId, String username) {
         String normalizedUsername = username == null ? "" : username.trim().toLowerCase();
@@ -80,6 +93,10 @@ public class AuthUserAdminService {
             throw new ApiExceptions.ConflictException("Username already registered");
         }
         authUsers.findById(userId).ifPresent(user -> user.setUsername(normalizedUsername));
+    }
+
+    @CacheEvict(cacheNames = {"adminUsers", "users"}, allEntries = true)
+    public void evictProfileCaches() {
     }
 
     private List<AuthAccountDto> searchAuthAccounts(String role) {

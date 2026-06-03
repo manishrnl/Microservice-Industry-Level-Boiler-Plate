@@ -16,6 +16,7 @@ import com.company.platform.commons.enums.RoleType;
 import com.company.platform.commons.exception.ApiExceptions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -293,6 +294,7 @@ public class AuthService {
                 .build();
     }
 
+    @Cacheable(cacheNames = "authJwks", key = "'current'")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Map<String, Object> jwks() {
         return rsaKeyService.jwks();

@@ -9,6 +9,8 @@ import com.company.platform.payment.repository.PaymentRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +57,7 @@ public class PaymentService {
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
+    @CacheEvict(cacheNames = "payments", key = "#userId")
     public PaymentDto initiate(UUID userId, PaymentRequestDto request) throws IOException, InterruptedException {
         if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment amount must be greater than zero");
@@ -85,12 +88,14 @@ public class PaymentService {
                 "Demo checkout is ready. Add STRIPE_SECRET_KEY to enable hosted Stripe Checkout.");
     }
 
+    @Cacheable(cacheNames = "payments", key = "#userId")
     public List<PaymentDto> list(UUID userId) {
         return paymentRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::toDto)
                 .toList();
     }
 
+    @CacheEvict(cacheNames = "payments", key = "#request.userId()")
     public List<PaymentDto> seedDemoData(DemoUserRequestDto request) {
         UUID userId = request.userId();
         createDemoPayment(userId, "Platform starter plan", new BigDecimal("499.00"), "INR", "SUCCEEDED",
@@ -106,6 +111,7 @@ public class PaymentService {
         return list(userId);
     }
 
+    @CacheEvict(cacheNames = "payments", key = "#userId")
     public PaymentDto confirm(UUID userId, UUID paymentId, PaymentConfirmationDto request) {
         Payment payment = paymentRepository.findByUserIdAndPaymentId(userId, paymentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment was not found"));
@@ -120,6 +126,7 @@ public class PaymentService {
         return toDto(paymentRepository.save(payment));
     }
 
+    @CacheEvict(cacheNames = "payments", allEntries = true)
     public Map<String, Object> processWebhook(String signature, String payload) throws IOException {
         verifyStripeSignature(signature, payload);
         Map<String, Object> event = objectMapper.readValue(payload, new TypeReference<>() {

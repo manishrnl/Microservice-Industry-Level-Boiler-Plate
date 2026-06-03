@@ -10,6 +10,8 @@ import com.company.platform.ai.provider.AiProviderFactory;
 import com.company.platform.ai.provider.ChatRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -34,6 +36,7 @@ public class AiChatService {
     @Value("${ai.context.max-messages:20}")
     private int maxHistoryMessages;
 
+    @Cacheable(cacheNames = "aiSessions", key = "#userId")
     public List<Map<String, Object>> sessions(UUID userId) {
         return sessions.findByUserIdAndArchivedFalseOrderByUpdatedAtDesc(userId)
                 .stream()
@@ -41,6 +44,7 @@ public class AiChatService {
                 .toList();
     }
 
+    @Cacheable(cacheNames = "aiMessages", key = "#userId + '|' + #sessionId")
     public List<Map<String, Object>> messages(UUID userId, UUID sessionId) {
         requireSession(userId, sessionId);
         return messages.findBySessionIdOrderByCreatedAtAsc(sessionId)
@@ -49,6 +53,7 @@ public class AiChatService {
                 .toList();
     }
 
+    @CacheEvict(cacheNames = {"aiSessions", "aiMessages"}, allEntries = true, beforeInvocation = true)
     public Map<String, Object> createSession(UUID userId, String title) {
         ChatSession session = new ChatSession();
         session.setUserId(userId);
@@ -56,18 +61,21 @@ public class AiChatService {
         return toSessionMap(sessions.save(session));
     }
 
+    @CacheEvict(cacheNames = {"aiSessions", "aiMessages"}, allEntries = true, beforeInvocation = true)
     public Map<String, Object> renameSession(UUID userId, UUID sessionId, String title) {
         ChatSession session = requireSession(userId, sessionId);
         session.setTitle(cleanTitle(title));
         return toSessionMap(sessions.save(session));
     }
 
+    @CacheEvict(cacheNames = {"aiSessions", "aiMessages"}, allEntries = true, beforeInvocation = true)
     public void archive(UUID userId, UUID sessionId) {
         ChatSession session = requireSession(userId, sessionId);
         session.setArchived(true);
         sessions.save(session);
     }
 
+    @CacheEvict(cacheNames = {"aiSessions", "aiMessages"}, allEntries = true, beforeInvocation = true)
     public Map<String, Object> saveClientMessages(UUID userId, UUID sessionId, List<MessagePayload> payloads) {
         ChatSession session = requireSession(userId, sessionId);
         for (MessagePayload payload : payloads) {
@@ -85,6 +93,7 @@ public class AiChatService {
         return toSessionMap(session);
     }
 
+    @CacheEvict(cacheNames = {"aiSessions", "aiMessages"}, allEntries = true, beforeInvocation = true)
     public List<Map<String, Object>> seedDemoData(DemoUserRequestDto request) {
         UUID userId = request.userId();
         createDemoChat(userId,
@@ -110,6 +119,7 @@ public class AiChatService {
         return sessions(userId);
     }
 
+    @CacheEvict(cacheNames = {"aiSessions", "aiMessages"}, allEntries = true, beforeInvocation = true)
     public Mono<Map<String, Object>> chat(UUID userId, AiController.ChatPayload payload, String userName, String userEmail) {
         ChatSession session = sessionForChat(userId, payload);
         String userContent = payload.message() == null ? "" : payload.message().trim();

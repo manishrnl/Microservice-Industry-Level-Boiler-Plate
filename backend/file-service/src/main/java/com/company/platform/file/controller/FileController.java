@@ -2,6 +2,7 @@ package com.company.platform.file.controller;
 
 import com.company.platform.file.model.FileMetadata;
 import com.company.platform.file.repository.FileMetadataRepository;
+import com.company.platform.file.service.FileMetadataCacheService;
 import com.company.platform.commons.dto.DemoUserRequestDto;
 import com.company.platform.commons.dto.FileMetadataDto;
 import com.company.platform.commons.exception.ApiExceptions;
@@ -74,6 +75,7 @@ public class FileController {
     );
 
     private final FileMetadataRepository repository;
+    private final FileMetadataCacheService fileCache;
     @Value("${file.download-base-url:http://localhost:8080}")
     private String downloadBaseUrl;
 
@@ -90,18 +92,14 @@ public class FileController {
         metadata.setSizeBytes(file.getSize());
         metadata.setPublic(false);
         metadata.setContent(Base64.getEncoder().encodeToString(file.getBytes()));
-        return toDto(repository.save(metadata));
+        FileMetadata saved = repository.save(metadata);
+        fileCache.evictAll();
+        return toDto(saved);
     }
 
     @GetMapping("/{id}/download-url")
     Map<String, String> downloadUrl(@PathVariable UUID id) {
-        FileMetadata metadata = repository.findById(id)
-                .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("File not found"));
-        return Map.of(
-                "url", downloadUrlFor(metadata.getId()),
-                "filename", metadata.getOriginalName(),
-                "contentType", metadata.getContentType()
-        );
+        return fileCache.downloadUrl(id, downloadBaseUrl);
     }
 
     @GetMapping("/{id}/download")
@@ -124,9 +122,7 @@ public class FileController {
 
     @GetMapping("/{id}/metadata")
     FileMetadataDto metadata(@PathVariable UUID id) {
-        return repository.findById(id)
-                .map(this::toDto)
-                .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("File not found"));
+        return fileCache.metadata(id);
     }
 
     @GetMapping("/my-files")
@@ -134,14 +130,13 @@ public class FileController {
     List<FileMetadataDto> myFiles(@RequestHeader(value = "X-User-Id", required = false) UUID userId) {
         UUID ownerId = resolveUserId(userId);
         seedDefaultReadme(ownerId);
-        return repository.findByUserIdOrderByCreatedAtDesc(ownerId).stream()
-                .map(this::toDto)
-                .toList();
+        return fileCache.userFiles(ownerId);
     }
 
     @DeleteMapping("/{id}")
     void delete(@PathVariable UUID id) {
         repository.deleteById(id);
+        fileCache.evictAll();
     }
 
     @PostMapping("/internal/demo-data")
@@ -163,14 +158,16 @@ public class FileController {
                 Use the observability page to open dashboards after Prometheus has scraped metrics.
                 """);
         seedSampleFile(userId, "payment-receipt-demo.txt", MediaType.TEXT_PLAIN_VALUE, "Demo payment receipt for the sample account.\n");
-        return repository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(this::toDto)
-                .toList();
+        fileCache.evictAll();
+        return fileCache.userFiles(userId);
     }
 
     private void seedDefaultReadme(UUID userId) {
-        repository.deleteByUserIdAndOriginalName(userId, OLD_SAMPLE_FILE_NAME);
+        boolean changed = repository.deleteByUserIdAndOriginalName(userId, OLD_SAMPLE_FILE_NAME) > 0;
         if (repository.existsByUserIdAndOriginalName(userId, DEFAULT_FILE_NAME)) {
+            if (changed) {
+                fileCache.evictAll();
+            }
             return;
         }
         byte[] content = readDefaultReadme();
@@ -182,6 +179,7 @@ public class FileController {
         readme.setSizeBytes(content.length);
         readme.setPublic(false);
         repository.save(readme);
+        fileCache.evictAll();
     }
 
     private void seedSampleFile(UUID userId, String fileName, String contentType, String content) {
@@ -212,13 +210,6 @@ public class FileController {
 
     private UUID resolveUserId(UUID userId) {
         return userId == null ? FALLBACK_USER_ID : userId;
-    }
-
-    private String downloadUrlFor(UUID id) {
-        String baseUrl = downloadBaseUrl == null || downloadBaseUrl.isBlank()
-                ? "http://localhost:8080"
-                : downloadBaseUrl.trim();
-        return StringUtils.trimTrailingCharacter(baseUrl, '/') + "/api/v1/files/" + id + "/download";
     }
 
     private String resolveOriginalName(MultipartFile file) {

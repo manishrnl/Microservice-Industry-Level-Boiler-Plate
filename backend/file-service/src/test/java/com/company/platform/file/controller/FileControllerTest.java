@@ -4,6 +4,7 @@ import com.company.platform.commons.dto.DemoUserRequestDto;
 import com.company.platform.commons.exception.ApiExceptions;
 import com.company.platform.file.model.FileMetadata;
 import com.company.platform.file.repository.FileMetadataRepository;
+import com.company.platform.file.service.FileMetadataCacheService;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.mockito.ArgumentCaptor;
@@ -35,7 +36,7 @@ class FileControllerTest {
     @BeforeMethod
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        controller = new FileController(repository);
+        controller = new FileController(repository, new FileMetadataCacheService(repository));
         ReflectionTestUtils.setField(controller, "downloadBaseUrl", "http://localhost:8080/");
         given(repository.save(any(FileMetadata.class))).willAnswer(invocation -> {
             FileMetadata metadata = invocation.getArgument(0);

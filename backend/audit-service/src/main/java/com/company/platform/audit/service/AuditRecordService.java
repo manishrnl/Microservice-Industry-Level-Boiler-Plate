@@ -7,6 +7,8 @@ import com.company.platform.commons.dto.DemoUserRequestDto;
 import com.company.platform.commons.enums.AuditAction;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ public class AuditRecordService {
         this.objectMapper = objectMapper;
     }
 
+    @Cacheable(cacheNames = "auditQuery", key = "'top100'")
     @Transactional(readOnly = true)
     public List<AuditEventDto> query() {
         return repository.findTop100ByOrderByCreatedAtDesc().stream()
@@ -35,6 +38,7 @@ public class AuditRecordService {
                 .toList();
     }
 
+    @Cacheable(cacheNames = "auditExport", key = "'all'")
     @Transactional(readOnly = true)
     public List<AuditEventDto> export() {
         return repository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
@@ -42,6 +46,7 @@ public class AuditRecordService {
                 .toList();
     }
 
+    @CacheEvict(cacheNames = {"auditQuery", "auditExport"}, allEntries = true)
     @Transactional
     public List<AuditEventDto> seedDemoData(DemoUserRequestDto request) {
         UUID userId = request.userId();

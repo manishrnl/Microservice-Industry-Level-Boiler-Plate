@@ -50,7 +50,7 @@ public class UserController {
                @RequestHeader(value = "X-User-Name", required = false) String name,
                @RequestHeader(value = "X-User-Roles", required = false) String roles) {
         UserProfile profile = profiles.findById(userId).orElse(null);
-        AuthAccountDto auth = authUsers.account(userId).orElse(null);
+        AuthAccountDto auth = authUsers.accountDto(userId);
         return userAccountMapper.toUserDto(profile, headerContext(userId, email, name, roles), auth == null ? null : auth.getUsername());
     }
 
@@ -64,7 +64,8 @@ public class UserController {
         UserProfile profile = profile(userId);
         profile.setName(name);
         profiles.save(profile);
-        AuthAccountDto auth = authUsers.account(userId).orElse(null);
+        authUsers.evictProfileCaches();
+        AuthAccountDto auth = authUsers.accountDto(userId);
         return userAccountMapper.toUserDto(profile, headerContext(userId, email, headerName, roles), auth == null ? null : auth.getUsername());
     }
 
@@ -73,7 +74,7 @@ public class UserController {
                                            @RequestHeader("X-User-Email") String email,
                                            @RequestHeader(value = "X-User-Name", required = false) String headerName,
                                            @RequestHeader(value = "X-User-Roles", required = false) String headerRoles) {
-        AuthAccountDto auth = authUsers.account(userId).orElse(null);
+        AuthAccountDto auth = authUsers.accountDto(userId);
         UserProfile profile = profiles.findById(userId).orElse(null);
         UserIdentityDocument identity = identityDocuments.findById(userId).orElse(null);
         UserContactDetails contact = contactDetails.findById(userId).orElse(null);
@@ -171,7 +172,8 @@ public class UserController {
         UserProfile profile = profile(userId);
         profile.setAvatarUrl(blankToNull(request.getAvatarUrl()));
         profiles.save(profile);
-        AuthAccountDto auth = authUsers.account(userId).orElse(null);
+        authUsers.evictProfileCaches();
+        AuthAccountDto auth = authUsers.accountDto(userId);
         return userAccountMapper.toUserDto(profile, headerContext(userId, email, name, roles), auth == null ? null : auth.getUsername());
     }
 
@@ -185,6 +187,7 @@ public class UserController {
             profile.setAvatarUrl(blankToNull(request.avatarUrl()));
         }
         profiles.save(profile);
+        authUsers.evictProfileCaches();
 
         UserPreference preference = preferences.findById(request.userId()).orElseGet(UserPreference::new);
         preference.setUserId(request.userId());

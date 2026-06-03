@@ -12,6 +12,21 @@ spring:
       connection-test-query: SELECT 1
   jackson:
     default-property-inclusion: non_null
+  cache:
+    type: redis
+    redis:
+      time-to-live: ${CACHE_DEFAULT_TTL:PT10M}
+      cache-null-values: false
+      use-key-prefix: true
+  data:
+    redis:
+      url: ${REDIS_DATABASE_URL:redis://${REDIS_HOST:redis}:${REDIS_PORT:6379}/0}
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     properties:
@@ -34,6 +49,9 @@ spring:
         hbm2ddl:
           create_namespaces: true
 management:
+  health:
+    redis:
+      enabled: ${MANAGEMENT_HEALTH_REDIS_ENABLED:false}
   endpoints:
     web:
       exposure:
@@ -42,6 +60,10 @@ management:
     health:
       probes:
         enabled: true
+platform:
+  cache:
+    enabled: ${CACHE_ENABLED:true}
+    default-ttl: ${CACHE_DEFAULT_TTL:PT10M}
 eureka:
   client:
     enabled: ${EUREKA_CLIENT_ENABLED:true}

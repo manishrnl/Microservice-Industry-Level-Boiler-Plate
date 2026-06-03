@@ -9,6 +9,8 @@ import com.company.platform.commons.enums.NotificationCategory;
 import com.company.platform.commons.exception.ApiExceptions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class NotificationService {
     @Value("${app.display-time-zone:Asia/Kolkata}")
     private String defaultTimeZone;
 
+    @Cacheable(cacheNames = "notifications", key = "#userId")
     @Transactional(readOnly = true)
     public List<NotificationDto> list(UUID userId) {
         return repository.findByUserIdOrderByCreatedAtDesc(userId).stream()
@@ -35,6 +38,7 @@ public class NotificationService {
                 .toList();
     }
 
+    @CacheEvict(cacheNames = "notifications", key = "#userId")
     @Transactional
     public NotificationDto markRead(UUID userId, UUID id) {
         Notification notification = repository.findByIdAndUserId(id, userId)
@@ -43,11 +47,13 @@ public class NotificationService {
         return toDto(notification);
     }
 
+    @CacheEvict(cacheNames = "notifications", key = "#userId")
     @Transactional
     public void markAllRead(UUID userId) {
         repository.markAllReadByUserId(userId);
     }
 
+    @CacheEvict(cacheNames = "notifications", key = "#userId")
     @Transactional
     public void delete(UUID userId, UUID id) {
         int deleted = repository.deleteByIdAndUserId(id, userId);
@@ -56,11 +62,13 @@ public class NotificationService {
         }
     }
 
+    @CacheEvict(cacheNames = "notifications", key = "#userId")
     @Transactional
     public void deleteAll(UUID userId) {
         repository.deleteByUserId(userId);
     }
 
+    @CacheEvict(cacheNames = "notifications", key = "#request.userId()")
     @Transactional
     public List<NotificationDto> recordLogin(LoginNotificationRequest request) {
         Notification login = create(
@@ -85,6 +93,7 @@ public class NotificationService {
         return List.of(toDto(login));
     }
 
+    @CacheEvict(cacheNames = "notifications", key = "#request.userId()")
     @Transactional
     public List<NotificationDto> seedDemoData(DemoUserRequestDto request) {
         UUID userId = request.userId();

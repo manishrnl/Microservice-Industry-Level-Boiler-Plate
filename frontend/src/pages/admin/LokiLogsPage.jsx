@@ -2,9 +2,12 @@ import {
     Activity,
     AlertTriangle,
     BarChart3,
+    Check,
+    ChevronDown,
     Clock3,
     Database,
     ExternalLink,
+    Palette,
     RadioTower,
     RefreshCw,
     Search,
@@ -19,7 +22,223 @@ import {PageWrapper} from "../../components/common/PageWrapper";
 import {env} from "../../config/env";
 
 const fallbackServices = ["api-gateway", "auth-service", "user-service", "notification-service", "payment-service", "file-service", "ai-service", "audit-service", "frontend", "postgres", "redis", "kafka", "grafana", "prometheus", "loki", "promtail"];
-const levels = ["", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
+const levels = ["", "ERROR", "WARN", "SUCCESS", "INFO", "DEBUG", "TRACE"];
+const severityOrder = ["ERROR", "WARN", "SUCCESS", "INFO", "DEBUG", "TRACE", "LOG"];
+const selectorBackedLevels = new Set(["ERROR", "WARN", "INFO", "DEBUG", "TRACE"]);
+const levelThemes = {
+    ERROR: {
+        label: "ERROR",
+        row: "border-red-500/30 bg-red-950/35 hover:bg-red-950/55",
+        badge: "text-red-200",
+        card: "border-red-200 bg-red-50 text-red-700 dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-200",
+        time: "text-red-200/70",
+        service: "text-red-100",
+        message: "text-red-50"
+    },
+    WARN: {
+        label: "WARN",
+        row: "border-yellow-400/25 bg-yellow-950/25 hover:bg-yellow-950/40",
+        badge: "text-yellow-200",
+        card: "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-400/25 dark:bg-yellow-400/10 dark:text-yellow-100",
+        time: "text-yellow-100/70",
+        service: "text-yellow-100",
+        message: "text-yellow-50"
+    },
+    SUCCESS: {
+        label: "SUCCESS",
+        row: "border-emerald-400/25 bg-emerald-950/25 hover:bg-emerald-950/40",
+        badge: "text-emerald-200",
+        card: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-100",
+        time: "text-emerald-100/70",
+        service: "text-emerald-100",
+        message: "text-emerald-50"
+    },
+    INFO: {
+        label: "INFO",
+        row: "border-sky-400/20 bg-sky-950/18 hover:bg-sky-950/30",
+        badge: "text-sky-200",
+        card: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/25 dark:bg-sky-400/10 dark:text-sky-100",
+        time: "text-sky-100/65",
+        service: "text-cyan-100",
+        message: "text-slate-100"
+    },
+    DEBUG: {
+        label: "DEBUG",
+        row: "border-cyan-400/20 bg-cyan-950/15 hover:bg-cyan-950/25",
+        badge: "text-cyan-200",
+        card: "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/25 dark:bg-cyan-400/10 dark:text-cyan-100",
+        time: "text-cyan-100/60",
+        service: "text-cyan-100",
+        message: "text-cyan-50/90"
+    },
+    TRACE: {
+        label: "TRACE",
+        row: "border-violet-400/20 bg-violet-950/18 hover:bg-violet-950/30",
+        badge: "text-violet-200",
+        card: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/25 dark:bg-violet-400/10 dark:text-violet-100",
+        time: "text-violet-100/60",
+        service: "text-violet-100",
+        message: "text-violet-50/90"
+    },
+    LOG: {
+        label: "LOG",
+        row: "border-white/10 bg-slate-950 hover:bg-slate-900",
+        badge: "text-slate-300",
+        card: "border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100",
+        time: "text-slate-400",
+        service: "text-cyan-200",
+        message: "text-slate-100"
+    }
+};
+const lightLevelThemes = {
+    ERROR: {
+        ...levelThemes.ERROR,
+        row: "border-red-200 bg-red-50 hover:bg-red-100/80",
+        badge: "text-red-700",
+        time: "text-red-500",
+        service: "text-red-800",
+        message: "text-red-950"
+    },
+    WARN: {
+        ...levelThemes.WARN,
+        row: "border-amber-200 bg-amber-50 hover:bg-amber-100/80",
+        badge: "text-amber-700",
+        time: "text-amber-600",
+        service: "text-amber-800",
+        message: "text-amber-950"
+    },
+    SUCCESS: {
+        ...levelThemes.SUCCESS,
+        row: "border-emerald-200 bg-emerald-50 hover:bg-emerald-100/80",
+        badge: "text-emerald-700",
+        time: "text-emerald-600",
+        service: "text-emerald-800",
+        message: "text-emerald-950"
+    },
+    INFO: {
+        ...levelThemes.INFO,
+        row: "border-sky-200 bg-sky-50 hover:bg-sky-100/80",
+        badge: "text-sky-700",
+        time: "text-sky-600",
+        service: "text-sky-800",
+        message: "text-sky-950"
+    },
+    DEBUG: {
+        ...levelThemes.DEBUG,
+        row: "border-cyan-200 bg-cyan-50 hover:bg-cyan-100/80",
+        badge: "text-cyan-700",
+        time: "text-cyan-600",
+        service: "text-cyan-800",
+        message: "text-cyan-950"
+    },
+    TRACE: {
+        ...levelThemes.TRACE,
+        row: "border-violet-200 bg-violet-50 hover:bg-violet-100/80",
+        badge: "text-violet-700",
+        time: "text-violet-600",
+        service: "text-violet-800",
+        message: "text-violet-950"
+    }
+};
+const logThemeOptions = [
+    {value: "midnight", label: "Midnight", detail: "Deep dark", swatch: "bg-slate-950"},
+    {value: "terminal", label: "Terminal", detail: "Classic green", swatch: "bg-lime-500"},
+    {value: "daylight", label: "Daylight", detail: "Clean light", swatch: "bg-sky-200"},
+    {value: "cloud", label: "Cloud", detail: "Soft light", swatch: "bg-indigo-200"},
+    {value: "ocean", label: "Ocean", detail: "Teal dark", swatch: "bg-teal-500"},
+    {value: "neon", label: "Neon", detail: "High contrast", swatch: "bg-fuchsia-500"}
+];
+const logPanelThemes = {
+    midnight: {
+        shell: "border-slate-200 shadow-sm dark:border-white/10",
+        header: "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300",
+        body: "bg-slate-950",
+        control: "border-white/10 bg-slate-900/95 text-slate-100 ring-white/5",
+        empty: "text-slate-400",
+        levels: levelThemes,
+        log: levelThemes.LOG
+    },
+    terminal: {
+        shell: "border-lime-300/50 shadow-sm shadow-lime-950/20 dark:border-lime-400/30",
+        header: "bg-lime-950 text-lime-200 dark:bg-black dark:text-lime-300",
+        body: "bg-black",
+        control: "border-lime-400/30 bg-black text-lime-200 ring-lime-400/20",
+        empty: "text-lime-300/70",
+        levels: levelThemes,
+        log: {
+            ...levelThemes.LOG,
+            row: "border-lime-400/15 bg-black hover:bg-lime-950/30",
+            badge: "text-lime-200",
+            time: "text-lime-300/55",
+            service: "text-lime-200",
+            message: "text-lime-50"
+        }
+    },
+    daylight: {
+        shell: "border-slate-200 shadow-sm shadow-slate-200/60 dark:border-slate-200",
+        header: "bg-white text-slate-600",
+        body: "bg-white",
+        control: "border-slate-200 bg-white text-slate-900 ring-slate-200",
+        empty: "text-slate-500",
+        levels: lightLevelThemes,
+        log: {
+            ...levelThemes.LOG,
+            row: "border-slate-200 bg-white hover:bg-slate-50",
+            badge: "text-slate-700",
+            time: "text-slate-500",
+            service: "text-sky-700",
+            message: "text-slate-950"
+        }
+    },
+    cloud: {
+        shell: "border-indigo-200 shadow-sm shadow-indigo-100/70 dark:border-indigo-200",
+        header: "bg-indigo-50 text-indigo-800",
+        body: "bg-slate-50",
+        control: "border-indigo-200 bg-white text-indigo-950 ring-indigo-100",
+        empty: "text-indigo-500",
+        levels: lightLevelThemes,
+        log: {
+            ...levelThemes.LOG,
+            row: "border-indigo-100 bg-slate-50 hover:bg-indigo-50",
+            badge: "text-indigo-700",
+            time: "text-slate-500",
+            service: "text-indigo-800",
+            message: "text-slate-950"
+        }
+    },
+    ocean: {
+        shell: "border-teal-300/60 shadow-sm shadow-teal-950/10 dark:border-teal-400/30",
+        header: "bg-teal-900 text-teal-50 dark:bg-teal-950 dark:text-teal-100",
+        body: "bg-teal-950",
+        control: "border-teal-300/40 bg-teal-950 text-teal-50 ring-teal-300/20",
+        empty: "text-teal-100/70",
+        levels: levelThemes,
+        log: {
+            ...levelThemes.LOG,
+            row: "border-teal-400/15 bg-teal-950 hover:bg-teal-900/70",
+            badge: "text-teal-100",
+            time: "text-teal-100/60",
+            service: "text-cyan-100",
+            message: "text-teal-50"
+        }
+    },
+    neon: {
+        shell: "border-fuchsia-400/40 shadow-sm shadow-fuchsia-950/20 dark:border-fuchsia-400/35",
+        header: "bg-fuchsia-950 text-fuchsia-100 dark:bg-fuchsia-950 dark:text-fuchsia-100",
+        body: "bg-[#080914]",
+        control: "border-fuchsia-400/35 bg-[#12091f] text-fuchsia-100 ring-fuchsia-400/25",
+        empty: "text-fuchsia-200/70",
+        levels: levelThemes,
+        log: {
+            ...levelThemes.LOG,
+            row: "border-fuchsia-400/15 bg-[#080914] hover:bg-fuchsia-950/30",
+            badge: "text-fuchsia-100",
+            time: "text-fuchsia-200/55",
+            service: "text-cyan-200",
+            message: "text-fuchsia-50"
+        }
+    }
+};
 const ranges = [
     {label: "15m", value: String(15 * 60 * 1000)},
     {label: "1h", value: String(60 * 60 * 1000)},
@@ -29,6 +248,8 @@ const ranges = [
 const quickFilters = [
     {label: "401", value: {q: "401", level: ""}},
     {label: "Errors", value: {q: "", level: "ERROR"}},
+    {label: "Warnings", value: {q: "", level: "WARN"}},
+    {label: "Success", value: {q: "", level: "SUCCESS"}},
     {label: "Info", value: {q: "", level: "INFO"}},
     {label: "Auth", value: {q: "auth", level: ""}},
     {label: "Gateway", value: {service: "api-gateway"}},
@@ -108,6 +329,8 @@ const relatedLinks = [
 
 const LokiLogsPage = () => {
     const [filters, setFilters] = useState({service: "", level: "", q: "", range: ranges[1].value, limit: "200"});
+    const [logTheme, setLogTheme] = useState("midnight");
+    const [themeMenuOpen, setThemeMenuOpen] = useState(false);
     const services = useQuery({
         queryKey: ["loki-services"],
         queryFn: async () => {
@@ -144,6 +367,9 @@ const LokiLogsPage = () => {
         refetchInterval: 10000
     });
     const rows = useMemo(() => extractRows(logs.data), [logs.data]);
+    const levelCounts = useMemo(() => summarizeLevels(rows), [rows]);
+    const selectedLogTheme = logPanelTheme(logTheme);
+    const selectedLogThemeOption = logThemeOptions.find((theme) => theme.value === logTheme) ?? logThemeOptions[0];
     const searchTerm = filters.q.trim();
     const updateFilter = (field) => (event) => setFilters((current) => ({...current, [field]: event.target.value}));
     const applyQuickFilter = (value) => setFilters((current) => ({...current, ...value}));
@@ -243,33 +469,92 @@ const LokiLogsPage = () => {
                     </button>)}
                 </div>
 
-                <div className="mt-4 flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
-                    <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-slate-400"/>
-                    <code className="min-w-0 break-all">{logql}</code>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+                    {severityOrder.map((level) => {
+                        const theme = levelTheme(level, logTheme);
+                        return <div
+                            key={level}
+                            className={`rounded-md border px-3 py-2 ${theme.card}`}
+                        >
+                            <span className="block text-[10px] font-bold uppercase tracking-wide opacity-70">{theme.label}</span>
+                            <span className="mt-1 block text-lg font-black leading-none">{levelCounts[level] ?? 0}</span>
+                        </div>;
+                    })}
                 </div>
 
-                <div className="mt-4 overflow-hidden rounded-md border border-slate-200 dark:border-white/10">
+
+                <div className={`mt-4 overflow-hidden rounded-md border ${selectedLogTheme.shell}`}>
                     <div className="overflow-x-auto">
                         <div className="min-w-[980px]">
-                            <div className="grid grid-cols-[170px_90px_160px_minmax(520px,1fr)] bg-slate-100 px-3 py-2 text-xs font-bold uppercase text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                            <div className={`grid grid-cols-[170px_112px_170px_minmax(520px,1fr)] px-3 py-2 text-xs font-bold uppercase ${selectedLogTheme.header}`}>
                                 <span>Time</span>
                                 <span>Level</span>
                                 <span>Service</span>
-                                <span>Message</span>
+                                <span className="flex min-w-0 items-center justify-between gap-3">
+                                    <span>Message</span>
+                                    <div className="relative ml-auto">
+                                        <button
+                                            type="button"
+                                            onClick={() => setThemeMenuOpen((open) => !open)}
+                                            className={`inline-flex h-9 min-w-[156px] shrink-0 items-center justify-between gap-2 rounded-md border px-2.5 normal-case shadow-sm ring-1 transition hover:-translate-y-px hover:shadow-md ${selectedLogTheme.control}`}
+                                            aria-haspopup="listbox"
+                                            aria-expanded={themeMenuOpen}
+                                        >
+                                            <span className="inline-flex min-w-0 items-center gap-2">
+                                                <Palette className="h-3.5 w-3.5 shrink-0"/>
+                                                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/10 ${selectedLogThemeOption.swatch}`}/>
+                                                <span className="truncate text-[11px] font-black">{selectedLogThemeOption.label}</span>
+                                            </span>
+                                            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition ${themeMenuOpen ? "rotate-180" : ""}`}/>
+                                        </button>
+                                        {themeMenuOpen && <div
+                                            className="absolute right-0 top-10 z-30 w-60 overflow-hidden rounded-md border border-slate-200 bg-white p-1.5 text-slate-950 shadow-xl shadow-slate-950/15 ring-1 ring-black/5 dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                                            role="listbox"
+                                            aria-label="Log theme"
+                                        >
+                                            {logThemeOptions.map((theme) => {
+                                                const active = theme.value === logTheme;
+                                                return <button
+                                                    key={theme.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setLogTheme(theme.value);
+                                                        setThemeMenuOpen(false);
+                                                    }}
+                                                    className={`flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition ${active ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950" : "hover:bg-slate-100 dark:hover:bg-white/10"}`}
+                                                    role="option"
+                                                    aria-selected={active}
+                                                >
+                                                    <span className={`h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10 ${theme.swatch}`}/>
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="block text-xs font-black">{theme.label}</span>
+                                                        <span className={`mt-0.5 block text-[11px] font-semibold normal-case ${active ? "text-white/75 dark:text-slate-700" : "text-slate-500 dark:text-slate-400"}`}>{theme.detail}</span>
+                                                    </span>
+                                                    {active && <Check className="h-4 w-4 shrink-0"/>}
+                                                </button>;
+                                            })}
+                                        </div>}
+                                    </div>
+                                </span>
                             </div>
-                            <div className="max-h-[620px] overflow-auto bg-slate-950 font-mono text-xs text-slate-100">
-                                {rows.map((row) => <div
-                                    key={`${row.timestamp}-${row.service}-${row.index}`}
-                                    className="grid grid-cols-[170px_90px_160px_minmax(520px,1fr)] border-t border-white/10 px-3 py-2"
-                                >
-                                    <span className="text-slate-400">{formatLokiTime(row.timestamp)}</span>
-                                    <span className={levelClass(row.level)}>{row.level || "LOG"}</span>
-                                    <span className="truncate text-cyan-200" title={row.service}>{row.service}</span>
-                                    <span className="break-all text-slate-100">
-                                        <HighlightedText value={row.message} search={searchTerm}/>
-                                    </span>
-                                </div>)}
-                                {!rows.length && <p className="px-3 py-8 text-center text-sm text-slate-400">No matching Loki logs.</p>}
+                            <div className={`max-h-[620px] overflow-auto font-mono text-xs ${selectedLogTheme.body}`}>
+                                {rows.map((row) => {
+                                    const theme = levelTheme(row.level, logTheme);
+                                    return <div
+                                        key={`${row.timestamp}-${row.service}-${row.index}`}
+                                        className={`grid grid-cols-[170px_112px_170px_minmax(520px,1fr)] border-t px-3 py-2 transition-colors ${theme.row}`}
+                                    >
+                                        <span className={theme.time}>{formatLokiTime(row.timestamp)}</span>
+                                        <span className={`text-[11px] font-black tracking-wide ${theme.badge}`}>
+                                            {displayLevel(row.level)}
+                                        </span>
+                                        <span className={`truncate font-semibold ${theme.service}`} title={row.service}>{row.service}</span>
+                                        <span className={`break-all ${theme.message}`}>
+                                            <HighlightedText value={row.message} search={searchTerm}/>
+                                        </span>
+                                    </div>;
+                                })}
+                                {!rows.length && <p className={`px-3 py-8 text-center text-sm ${selectedLogTheme.empty}`}>No matching Loki logs.</p>}
                             </div>
                         </div>
                     </div>
@@ -280,7 +565,6 @@ const LokiLogsPage = () => {
                         Loki query failed. Check that Loki and Promtail are running.
                     </p>}
             </section>
-
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {relatedLinks.map(({label, href, Icon, tone}) => <a
                     key={label}
@@ -348,10 +632,13 @@ const highlightParts = (value, search) => {
 
 const buildLogQl = ({service, level, q}) => {
     const selectors = [service ? `service="${escapeLabel(service)}"` : "compose_project=\"microservice-industry\""];
-    if (level) {
+    if (selectorBackedLevels.has(level)) {
         selectors.push(`level="${escapeLabel(level)}"`);
     }
     const filters = [`{${selectors.join(",")}}`];
+    if (level === "SUCCESS") {
+        filters.push("|~ \"(?i)(success|succeeded|successful|started|completed|healthy|status[=:] ?[23][0-9][0-9]|200 OK|\\\\bUP\\\\b)\"");
+    }
     const search = q?.trim();
     if (search) {
         filters.push(`|~ "(?i)${escapeRegex(search)}"`);
@@ -371,11 +658,12 @@ const extractRows = (payload) => {
         const labels = stream.stream ?? {};
         return (stream.values ?? []).map(([timestamp, line], index) => {
             const parsed = parseLogLine(line);
+            const level = classifyLogLevel(labels.level || parsed.level, `${line ?? ""} ${parsed.message ?? ""}`);
             return {
                 index,
                 timestamp,
                 service: labels.service || labels.container || "unknown",
-                level: labels.level || parsed.level || levelFromLine(line),
+                level,
                 message: parsed.message || String(line ?? ""),
                 labels
             };
@@ -384,22 +672,59 @@ const extractRows = (payload) => {
 };
 
 const parseLogLine = (line) => {
-    const value = String(line ?? "").trim();
+    const value = stripAnsi(line).trim();
     if (!value.startsWith("{")) {
         return {message: value, level: levelFromLine(value)};
     }
     try {
         const parsed = JSON.parse(value);
         const message = parsed.message || parsed.msg || parsed.log || value;
-        return {message: String(message).trim(), level: parsed.level || parsed.severity};
+        return {message: stripAnsi(message).trim(), level: parsed.level || parsed.severity};
     } catch {
         return {message: value, level: levelFromLine(value)};
     }
 };
 
+const stripAnsi = (value) => String(value ?? "").replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, "");
+
+const classifyLogLevel = (explicitLevel, line) => {
+    const normalized = normalizeLevel(explicitLevel);
+    const text = stripAnsi(line);
+    if (/\b(ERROR|SEVERE|FATAL)\b/i.test(text) || /status[=:]\s*5\d\d/i.test(text) || /\b(exception|failed|failure|unhealthy|timeout|refused)\b/i.test(text)) {
+        return "ERROR";
+    }
+    if (/\b(WARN|WARNING)\b/i.test(text) || /status[=:]\s*4\d\d/i.test(text)) {
+        return "WARN";
+    }
+    if (/\b(success|succeeded|successful|started|completed|healthy)\b/i.test(text) || /status[=:]\s*[23]\d\d/i.test(text) || /\b200\s+OK\b/i.test(text) || /\bUP\b/.test(text)) {
+        return "SUCCESS";
+    }
+    return normalized || levelFromLine(text);
+};
+
 const levelFromLine = (line) => {
-    const match = String(line ?? "").match(/\b(ERROR|WARN|INFO|DEBUG|TRACE)\b/i);
-    return match?.[1]?.toUpperCase() ?? "";
+    const match = String(line ?? "").match(/\b(ERROR|SEVERE|FATAL|WARN|WARNING|INFO|DEBUG|TRACE)\b/i);
+    return normalizeLevel(match?.[1]) ?? "";
+};
+
+const normalizeLevel = (level) => {
+    const value = String(level ?? "").trim().toUpperCase();
+    if (!value) {
+        return "";
+    }
+    if (["ERROR", "SEVERE", "FATAL"].includes(value)) {
+        return "ERROR";
+    }
+    if (["WARN", "WARNING"].includes(value)) {
+        return "WARN";
+    }
+    if (["SUCCESS", "OK", "UP"].includes(value)) {
+        return "SUCCESS";
+    }
+    if (["INFO", "DEBUG", "TRACE"].includes(value)) {
+        return value;
+    }
+    return "";
 };
 
 const compareTimestamp = (left, right) => {
@@ -423,24 +748,24 @@ const timestampToDate = (value) => {
     }
 };
 
-const levelClass = (level) => {
-    if (level === "ERROR") {
-        return "font-bold text-red-300";
+const logPanelTheme = (theme) => logPanelThemes[theme] ?? logPanelThemes.midnight;
+
+const levelTheme = (level, logTheme = "midnight") => {
+    const panelTheme = logPanelTheme(logTheme);
+    const normalized = normalizeLevel(level);
+    if (!normalized) {
+        return panelTheme.log;
     }
-    if (level === "WARN") {
-        return "font-bold text-amber-300";
-    }
-    if (level === "INFO") {
-        return "font-bold text-emerald-300";
-    }
-    if (level === "DEBUG") {
-        return "font-bold text-sky-300";
-    }
-    if (level === "TRACE") {
-        return "font-bold text-violet-300";
-    }
-    return "font-bold text-slate-300";
+    return panelTheme.levels?.[normalized] ?? levelThemes[normalized] ?? panelTheme.log;
 };
+
+const displayLevel = (level) => levelTheme(level).label;
+
+const summarizeLevels = (rows) => rows.reduce((counts, row) => {
+    const level = normalizeLevel(row.level) || "LOG";
+    counts[level] = (counts[level] ?? 0) + 1;
+    return counts;
+}, Object.fromEntries(severityOrder.map((level) => [level, 0])));
 
 export {
     LokiLogsPage

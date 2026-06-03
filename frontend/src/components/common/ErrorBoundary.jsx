@@ -8,7 +8,13 @@ class ErrorBoundary extends Component {
     }
 
     componentDidCatch(error, info) {
-        console.error(error, info);
+        console.error(
+            "%c ERROR %c React render failed ",
+            "background:#dc2626;color:white;font-weight:800;padding:4px 8px;border-radius:5px 0 0 5px;",
+            "background:#fee2e2;color:#7f1d1d;font-weight:700;padding:4px 8px;border-radius:0 5px 5px 0;",
+            error,
+            info
+        );
     }
 
     render() {

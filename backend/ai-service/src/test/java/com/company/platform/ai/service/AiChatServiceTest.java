@@ -45,6 +45,8 @@ class AiChatServiceTest {
         MockitoAnnotations.openMocks(this);
         service = new AiChatService(providers, sessions, messages);
         ReflectionTestUtils.setField(service, "maxHistoryMessages", 2);
+        ReflectionTestUtils.setField(service, "premiumTokenLimit", 100000L);
+        ReflectionTestUtils.setField(service, "freeTrialPercent", 10);
         given(sessions.save(any(ChatSession.class))).willAnswer(invocation -> {
             ChatSession session = invocation.getArgument(0);
             if (session.getId() == null) {
@@ -135,6 +137,22 @@ class AiChatServiceTest {
         verify(messages, org.mockito.Mockito.times(2)).save(captor.capture());
         assertEquals(captor.getAllValues().stream().map(ChatMessage::getRole).toList(), List.of("user", "assistant"));
         assertEquals(session.getTitle(), "First user message");
+        assertTrue(session.getTotalTokens() > 0);
+    }
+
+    @Test
+    void usageReturnsFreeTrialBudgetAndRemainingTokens() {
+        UUID userId = UUID.randomUUID();
+        given(messages.sumTokensUsedByUserId(userId)).willReturn(2500L);
+        given(sessions.sumTotalTokensByUserId(userId)).willReturn(1200L);
+
+        Map<String, Object> usage = service.usage(userId);
+
+        assertEquals(usage.get("usedTokens"), 2500L);
+        assertEquals(usage.get("totalTokens"), 10000L);
+        assertEquals(usage.get("availableTokens"), 7500L);
+        assertEquals(usage.get("remainingTokens"), 7500L);
+        assertEquals(usage.get("freeTrialPercent"), 10);
     }
 
     @Test
@@ -143,7 +161,7 @@ class AiChatServiceTest {
         given(sessions.existsByUserIdAndTitle(userId, "Explain this microservice project")).willReturn(true);
         given(sessions.findByUserIdAndArchivedFalseOrderByUpdatedAtDesc(userId)).willReturn(List.of());
 
-        assertTrue(service.seedDemoData(new DemoUserRequestDto(userId, "u@example.com", "User", "user", null)).isEmpty());
+        assertTrue(service.seedDemoData(new DemoUserRequestDto(userId, "u@example.com", "User")).isEmpty());
 
         verify(sessions, org.mockito.Mockito.times(4)).save(any(ChatSession.class));
         verify(messages, org.mockito.Mockito.times(8)).save(any(ChatMessage.class));

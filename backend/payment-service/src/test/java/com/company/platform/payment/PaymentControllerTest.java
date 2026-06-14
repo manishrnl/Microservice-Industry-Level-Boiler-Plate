@@ -28,7 +28,7 @@ class PaymentControllerTest {
         PaymentRequestDto request = new PaymentRequestDto(new BigDecimal("10.00"), "INR", "DEMO", "Test");
         PaymentConfirmationDto confirmation = new PaymentConfirmationDto("session-1", "success");
         PaymentDto dto = dto(paymentId, "READY");
-        DemoUserRequestDto demo = new DemoUserRequestDto(userId, "u@example.com", "User", "user", null);
+        DemoUserRequestDto demo = new DemoUserRequestDto(userId, "u@example.com", "User");
         given(service.initiate(userId, request)).willReturn(dto);
         given(service.list(userId)).willReturn(List.of(dto));
         given(service.confirm(userId, paymentId, confirmation)).willReturn(dto(paymentId, "SUCCEEDED"));

@@ -83,7 +83,7 @@ public class PaymentService {
                 request.amount(),
                 currency,
                 null,
-                frontendBaseUrl + "/payments?paymentId=" + paymentId + "&status=demo",
+                frontendBaseUrl + "/app/payments?paymentId=" + paymentId + "&status=demo",
                 request.description(),
                 "Demo checkout is ready. Add STRIPE_SECRET_KEY to enable hosted Stripe Checkout.");
     }
@@ -146,14 +146,17 @@ public class PaymentService {
 
     private PaymentDto createStripeCheckout(UUID userId, UUID paymentId, PaymentRequestDto request, String currency) throws IOException, InterruptedException {
         Map<String, String> form = new LinkedHashMap<>();
+        String description = Optional.ofNullable(request.description()).filter(value -> !value.isBlank()).orElse("Platform payment");
         form.put("mode", "payment");
-        form.put("success_url", frontendBaseUrl + "/payments?paymentId=" + paymentId + "&status=success&session_id={CHECKOUT_SESSION_ID}");
-        form.put("cancel_url", frontendBaseUrl + "/payments?paymentId=" + paymentId + "&status=cancelled");
+        form.put("success_url", frontendBaseUrl + "/app/payments?paymentId=" + paymentId + "&status=success&session_id={CHECKOUT_SESSION_ID}");
+        form.put("cancel_url", frontendBaseUrl + "/app/payments?paymentId=" + paymentId + "&status=cancelled");
         form.put("line_items[0][price_data][currency]", currency);
-        form.put("line_items[0][price_data][product_data][name]", Optional.ofNullable(request.description()).filter(value -> !value.isBlank()).orElse("Platform payment"));
+        form.put("line_items[0][price_data][product_data][name]", description);
+        form.put("line_items[0][price_data][product_data][description]", description);
         form.put("line_items[0][price_data][unit_amount]", request.amount().multiply(BigDecimal.valueOf(100)).setScale(0, BigDecimal.ROUND_HALF_UP).toPlainString());
         form.put("line_items[0][quantity]", "1");
         form.put("metadata[payment_id]", paymentId.toString());
+        form.put("metadata[description]", description);
 
         HttpRequest stripeRequest = HttpRequest.newBuilder(URI.create("https://api.stripe.com/v1/checkout/sessions"))
                 .header("Authorization", "Basic " + java.util.Base64.getEncoder().encodeToString((stripeSecretKey + ":").getBytes(StandardCharsets.UTF_8)))
@@ -228,7 +231,7 @@ public class PaymentService {
                 amount,
                 currency,
                 null,
-                frontendBaseUrl + "/payments?status=demo",
+                frontendBaseUrl + "/app/payments?status=demo",
                 description,
                 message);
     }

@@ -18,6 +18,7 @@ import com.company.platform.user.repository.UserIdentityDocumentRepository;
 import com.company.platform.user.repository.UserPreferenceRepository;
 import com.company.platform.user.repository.UserProfileRepository;
 import com.company.platform.user.service.AuthUserAdminService;
+import com.company.platform.commons.api.PagedResponse;
 import com.company.platform.commons.dto.DemoUserRequestDto;
 import com.company.platform.commons.dto.UserDto;
 import com.company.platform.commons.enums.RoleType;
@@ -126,9 +127,11 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    List<UserDto> search(@RequestParam(value = "q", required = false) String query,
-                         @RequestParam(value = "role", required = false) String role) {
-        return authUsers.search(query, role);
+    PagedResponse<UserDto> search(@RequestParam(value = "q", required = false) String query,
+                                  @RequestParam(value = "role", required = false) String role,
+                                  @RequestParam(value = "page", defaultValue = "0") int page,
+                                  @RequestParam(value = "size", defaultValue = "10") int size) {
+        return authUsers.searchPage(query, role, page, size);
     }
 
     @PreAuthorize("hasRole('SUPER_ADMIN')")

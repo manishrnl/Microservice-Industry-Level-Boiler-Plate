@@ -8,6 +8,7 @@ import {
     History,
     RadioTower,
     ShieldCheck,
+    Sparkles,
     UserRound,
     Users
 } from "lucide-react";
@@ -21,6 +22,7 @@ const mainLinks = [
     {label: "Notifications", to: "/app/notifications", Icon: Bell},
     {label: "Files", to: "/app/files", Icon: FileText},
     {label: "Payments", to: "/app/payments", Icon: CreditCard},
+    {label: "Premium", to: "/app/premium", Icon: Sparkles},
     {label: "Sessions", to: "/app/sessions", Icon: ShieldCheck},
     {label: "Profile", to: "/app/profile", Icon: UserRound}
 ];

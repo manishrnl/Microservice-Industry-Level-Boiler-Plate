@@ -71,8 +71,8 @@ public class AiController {
     }
 
     @GetMapping("/usage")
-    Map<String, Object> usage() {
-        return Map.of("totalTokens", 0);
+    Map<String, Object> usage(@RequestHeader("X-User-Id") UUID userId) {
+        return chats.usage(userId);
     }
 
     @PostMapping("/internal/demo-data")

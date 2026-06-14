@@ -19,6 +19,7 @@ import {NotificationsPage} from "./pages/NotificationsPage";
 import {SessionsPage} from "./pages/SessionsPage";
 import {FilesPage} from "./pages/FilesPage";
 import {PaymentsPage} from "./pages/PaymentsPage";
+import {PremiumPage} from "./pages/PremiumPage";
 import {AiChatPage} from "./pages/ai/AiChatPage";
 import {UserManagementPage} from "./pages/admin/UserManagementPage";
 import {SuperAdminDashboardPage} from "./pages/admin/SuperAdminDashboardPage";
@@ -42,6 +43,7 @@ const pageTitles = [
     {path: "/app/sessions", title: "Sessions"},
     {path: "/app/files", title: "Files"},
     {path: "/app/payments", title: "Payments"},
+    {path: "/app/premium", title: "Premium"},
     {path: "/app/ai", title: "AI Chat"},
     {path: "/app/admin/users", title: "Admin Users"},
     {path: "/app/admin/audit", title: "Admin Audit"},
@@ -97,6 +99,7 @@ const App = () => {
                     <Route path="sessions" element={<SessionsPage/>}/>
                     <Route path="files" element={<FilesPage/>}/>
                     <Route path="payments" element={<PaymentsPage/>}/>
+                    <Route path="premium" element={<PremiumPage/>}/>
                     <Route path="ai" element={<AiChatPage/>}/>
                     <Route element={<ProtectedRoute
                         requiredAnyRole={["ADMIN", "SUPER_ADMIN"]}
@@ -127,6 +130,7 @@ const App = () => {
             <Route path="/sessions" element={<Navigate to="/app/sessions" replace/>}/>
             <Route path="/files" element={<Navigate to="/app/files" replace/>}/>
             <Route path="/payments" element={<Navigate to="/app/payments" replace/>}/>
+            <Route path="/premium" element={<Navigate to="/app/premium" replace/>}/>
             <Route path="/ai" element={<Navigate to="/app/ai" replace/>}/>
             <Route path="/admin/users" element={<Navigate to="/app/admin/users" replace/>}/>
             <Route path="/admin/audit" element={<Navigate to="/app/admin/audit" replace/>}/>

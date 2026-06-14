@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -55,7 +56,7 @@ class AuthUserAdminServiceTest {
         UUID userId = UUID.randomUUID();
         AuthUser user = authUser(userId, "admin@example.com", "admin", Set.of("ADMIN"));
         UserProfile profile = UserProfile.builder().userId(userId).name("MANISH").build();
-        given(authUsers.findByRolesNameOrderByEmailAsc(org.mockito.ArgumentMatchers.eq("ADMIN"), any(Pageable.class))).willReturn(List.of(user));
+        given(authUsers.findByRolesNameOrderByEmailAsc(org.mockito.ArgumentMatchers.eq("ADMIN"), any(Pageable.class))).willReturn(new PageImpl<>(List.of(user)));
         given(profiles.findAllById(List.of(userId))).willReturn(List.of(profile));
 
         var rows = service.search("mani", " admin ");
@@ -68,13 +69,28 @@ class AuthUserAdminServiceTest {
     void searchWithoutRoleReturnsAllMatchingAccountsAndHandlesMissingProfiles() {
         UUID userId = UUID.randomUUID();
         AuthUser user = authUser(userId, "person@example.com", "person", Set.of("USER"));
-        given(authUsers.findAllByOrderByEmailAsc(any(Pageable.class))).willReturn(List.of(user));
+        given(authUsers.findByOrderByEmailAsc(any(Pageable.class))).willReturn(new PageImpl<>(List.of(user)));
         given(profiles.findAllById(List.of(userId))).willReturn(List.of());
 
         var rows = service.search("person@example.com", " ");
 
         assertEquals(rows.size(), 1);
         assertEquals(rows.getFirst().getEmail(), "person@example.com");
+    }
+
+    @Test
+    void searchPageReturnsPagedUsersWithMetadata() {
+        UUID userId = UUID.randomUUID();
+        AuthUser user = authUser(userId, "paged@example.com", "paged", Set.of("USER"));
+        given(authUsers.findByOrderByEmailAsc(any(Pageable.class))).willReturn(new PageImpl<>(List.of(user), org.springframework.data.domain.PageRequest.of(1, 10), 21));
+        given(profiles.findAllById(List.of(userId))).willReturn(List.of());
+
+        var page = service.searchPage("", "", 1, 10);
+
+        assertEquals(page.content().size(), 1);
+        assertEquals(page.page(), 1);
+        assertEquals(page.size(), 10);
+        assertEquals(page.totalElements(), 21);
     }
 
     @Test

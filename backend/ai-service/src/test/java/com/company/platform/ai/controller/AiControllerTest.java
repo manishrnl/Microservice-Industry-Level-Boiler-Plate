@@ -50,13 +50,14 @@ class AiControllerTest {
     @Test
     void simpleUtilityEndpointsReturnStaticOrDelegatedValues() {
         UUID userId = UUID.randomUUID();
-        DemoUserRequestDto demo = new DemoUserRequestDto(userId, "u@example.com", "User", "user", null);
+        DemoUserRequestDto demo = new DemoUserRequestDto(userId, "u@example.com", "User");
         given(service.seedDemoData(demo)).willReturn(List.of(Map.of("title", "Demo")));
+        given(service.usage(userId)).willReturn(Map.of("usedTokens", 100L, "totalTokens", 10000L, "availableTokens", 9900L, "remainingTokens", 9900L, "freeTrialPercent", 10));
 
         StepVerifier.create(controller.stream("session-1"))
                 .expectNext(Map.of("done", true, "sessionId", "session-1"))
                 .verifyComplete();
-        assertEquals(controller.usage().get("totalTokens"), 0);
+        assertEquals(controller.usage(userId).get("remainingTokens"), 9900L);
         assertEquals(controller.seedDemoData(demo).size(), 1);
         controller.updatePrompt(Map.of("systemPrompt", "Be helpful"));
     }

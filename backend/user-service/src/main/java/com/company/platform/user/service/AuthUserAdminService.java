@@ -1,5 +1,6 @@
 package com.company.platform.user.service;
 
+import com.company.platform.commons.api.PagedResponse;
 import com.company.platform.user.auth.repository.AuthRoleRepository;
 import com.company.platform.user.auth.repository.AuthUserRepository;
 import com.company.platform.user.dto.AuthAccountDto;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +50,33 @@ public class AuthUserAdminService {
                 .filter(user -> matches(user, normalizedQuery))
                 .limit(250)
                 .toList();
+    }
+
+    public PagedResponse<UserDto> searchPage(String query, String role, int page, int size) {
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
+        String normalizedRole = role == null ? "" : role.trim().toUpperCase();
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
+        org.springframework.data.domain.Page<AuthUser> accountPage = normalizedRole.isBlank()
+                ? authUsers.findByOrderByEmailAsc(pageable)
+                : authUsers.findByRolesNameOrderByEmailAsc(normalizedRole, pageable);
+        Map<UUID, UserProfile> profileById = profiles.findAllById(accountPage.getContent().stream().map(AuthUser::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(UserProfile::getUserId, profile -> profile, (left, right) -> left, LinkedHashMap::new));
+        List<UserDto> content = accountPage.getContent().stream()
+                .map(user -> {
+                    AuthAccountDto account = userAccountMapper.toAuthAccountDto(user);
+                    return userAccountMapper.toUserDto(account, profileById.get(account.getUserId()));
+                })
+                .filter(user -> matches(user, normalizedQuery))
+                .toList();
+        return new PagedResponse<>(
+                content,
+                accountPage.getNumber(),
+                accountPage.getSize(),
+                accountPage.getTotalElements(),
+                accountPage.getTotalPages(),
+                accountPage.isLast()
+        );
     }
 
     public UserDto get(UUID userId) {
@@ -98,8 +127,8 @@ public class AuthUserAdminService {
     private List<AuthAccountDto> searchAuthAccounts(String role) {
         String normalizedRole = role == null ? "" : role.trim().toUpperCase();
         List<AuthUser> users = normalizedRole.isBlank()
-                ? authUsers.findAllByOrderByEmailAsc(PageRequest.of(0, AUTH_ACCOUNT_FETCH_LIMIT))
-                : authUsers.findByRolesNameOrderByEmailAsc(normalizedRole, PageRequest.of(0, AUTH_ACCOUNT_FETCH_LIMIT));
+                ? authUsers.findByOrderByEmailAsc(PageRequest.of(0, AUTH_ACCOUNT_FETCH_LIMIT)).getContent()
+                : authUsers.findByRolesNameOrderByEmailAsc(normalizedRole, PageRequest.of(0, AUTH_ACCOUNT_FETCH_LIMIT)).getContent();
         return users.stream()
                 .map(userAccountMapper::toAuthAccountDto)
                 .toList();

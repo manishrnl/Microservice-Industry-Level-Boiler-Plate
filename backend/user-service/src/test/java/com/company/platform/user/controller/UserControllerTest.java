@@ -163,11 +163,11 @@ class UserControllerTest {
         UserDto dto = UserDto.builder().userId(userId).name("Admin").email("admin@example.com").roles(Set.of(RoleType.ADMIN)).build();
         UserRoleUpdateRequestDto roleRequest = UserRoleUpdateRequestDto.builder().role("ADMIN").build();
         given(authUsers.get(userId)).willReturn(dto);
-        given(authUsers.search("admin", "ADMIN")).willReturn(List.of(dto));
+        given(authUsers.searchPage("admin", "ADMIN", 0, 10)).willReturn(new com.company.platform.commons.api.PagedResponse<>(List.of(dto), 0, 10, 1, 1, true));
         given(authUsers.updateRoles(userId, Set.of(RoleType.ADMIN))).willReturn(dto);
 
         assertEquals(controller.get(userId), dto);
-        assertEquals(controller.search("admin", "ADMIN"), List.of(dto));
+        assertEquals(controller.search("admin", "ADMIN", 0, 10).content(), List.of(dto));
         assertEquals(controller.updateRole(userId, roleRequest), dto);
         controller.delete(userId);
     }

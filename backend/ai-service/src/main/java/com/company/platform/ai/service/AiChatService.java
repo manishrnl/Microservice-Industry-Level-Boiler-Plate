@@ -36,6 +36,12 @@ public class AiChatService {
     @Value("${ai.context.max-messages:20}")
     private int maxHistoryMessages;
 
+    @Value("${ai.tokens.premium-limit:100000}")
+    private long premiumTokenLimit;
+
+    @Value("${ai.tokens.free-trial-percent:10}")
+    private int freeTrialPercent;
+
     @Cacheable(cacheNames = "aiSessions", key = "#userId")
     public List<Map<String, Object>> sessions(UUID userId) {
         return sessions.findByUserIdAndArchivedFalseOrderByUpdatedAtDesc(userId)
@@ -78,18 +84,21 @@ public class AiChatService {
     @CacheEvict(cacheNames = {"aiSessions", "aiMessages"}, allEntries = true, beforeInvocation = true)
     public Map<String, Object> saveClientMessages(UUID userId, UUID sessionId, List<MessagePayload> payloads) {
         ChatSession session = requireSession(userId, sessionId);
+        int tokensUsed = 0;
         for (MessagePayload payload : payloads) {
             if (payload == null || payload.content() == null || payload.content().isBlank()) {
                 continue;
             }
-            saveMessage(session.getId(), payload.role(), payload.content(), estimateTokens(payload.content()), "client");
+            int messageTokens = estimateTokens(payload.content());
+            tokensUsed += messageTokens;
+            saveMessage(session.getId(), payload.role(), payload.content(), messageTokens, "client");
         }
         touchSession(session, payloads.stream()
                 .filter(payload -> payload != null && payload.role() != null && payload.role().equalsIgnoreCase("user"))
                 .map(MessagePayload::content)
                 .filter(content -> content != null && !content.isBlank())
                 .findFirst()
-                .orElse(null), 0);
+                .orElse(null), tokensUsed);
         return toSessionMap(session);
     }
 
@@ -127,7 +136,8 @@ public class AiChatService {
             return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message is required"));
         }
         List<ChatRequest.ChatTurn> history = history(session.getId());
-        saveMessage(session.getId(), "user", userContent, estimateTokens(userContent), null);
+        int inputTokens = estimateTokens(userContent);
+        saveMessage(session.getId(), "user", userContent, inputTokens, null);
         String prompt = systemPrompt(payload, userName, userEmail);
         session.setSystemPrompt(prompt);
         session.setContextSummary(contextSummary(payload));
@@ -137,11 +147,11 @@ public class AiChatService {
                 .map(response -> {
                     int outputTokens = estimateTokens(response);
                     saveMessage(session.getId(), "assistant", response, outputTokens, MODEL_NAME);
-                    touchSession(session, userContent, outputTokens);
+                    touchSession(session, userContent, inputTokens + outputTokens);
                     return Map.<String, Object>of(
                             "sessionId", session.getId(),
                             "response", response,
-                            "tokensUsed", outputTokens,
+                            "tokensUsed", inputTokens + outputTokens,
                             "model", MODEL_NAME,
                             "latencyMs", System.currentTimeMillis() - started
                     );
@@ -150,11 +160,11 @@ public class AiChatService {
                     String response = "AI service could not answer right now. Please check the local AI service/provider configuration.";
                     int outputTokens = estimateTokens(response);
                     saveMessage(session.getId(), "assistant", response, outputTokens, MODEL_NAME);
-                    touchSession(session, userContent, outputTokens);
+                    touchSession(session, userContent, inputTokens + outputTokens);
                     return Mono.just(Map.<String, Object>of(
                             "sessionId", session.getId(),
                             "response", response,
-                            "tokensUsed", outputTokens,
+                            "tokensUsed", inputTokens + outputTokens,
                             "model", MODEL_NAME,
                             "error", true,
                             "latencyMs", System.currentTimeMillis() - started
@@ -212,12 +222,27 @@ public class AiChatService {
         saveMessage(saved.getId(), "assistant", assistantMessage, estimateTokens(assistantMessage), MODEL_NAME);
     }
 
-    private void touchSession(ChatSession session, String firstUserMessage, int outputTokens) {
+    public Map<String, Object> usage(UUID userId) {
+        long messageTokens = Math.max(0, messages.sumTokensUsedByUserId(userId));
+        long sessionTokens = Math.max(0, sessions.sumTotalTokensByUserId(userId));
+        long usedTokens = Math.max(messageTokens, sessionTokens);
+        long totalTokens = Math.max(0, premiumTokenLimit * Math.max(0, freeTrialPercent) / 100);
+        long remainingTokens = Math.max(0, totalTokens - usedTokens);
+        return Map.of(
+                "usedTokens", usedTokens,
+                "totalTokens", totalTokens,
+                "availableTokens", remainingTokens,
+                "remainingTokens", remainingTokens,
+                "freeTrialPercent", Math.max(0, freeTrialPercent)
+        );
+    }
+
+    private void touchSession(ChatSession session, String firstUserMessage, int tokensUsed) {
         if ((session.getTitle() == null || session.getTitle().equals("New chat")) && firstUserMessage != null && !firstUserMessage.isBlank()) {
             session.setTitle(cleanTitle(firstUserMessage));
         }
         session.setModelUsed(MODEL_NAME);
-        session.setTotalTokens(session.getTotalTokens() + Math.max(0, outputTokens));
+        session.setTotalTokens(session.getTotalTokens() + Math.max(0, tokensUsed));
         session.setUpdatedAt(LocalDateTime.now());
         sessions.save(session);
     }

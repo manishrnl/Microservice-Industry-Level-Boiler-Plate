@@ -1,7 +1,8 @@
-import {Check, Copy, Edit3, LoaderCircle, Plus, RefreshCcw, Send, X} from "lucide-react";
+import {Check, Copy, Edit3, LoaderCircle, Plus, RefreshCcw, Send, Sparkles, X} from "lucide-react";
 import {useQuery, useQueryClient} from "@tanstack/react-query";
 import {useEffect, useRef, useState} from "react";
 import ReactMarkdown from "react-markdown";
+import {Link} from "react-router-dom";
 import {apiClient} from "../../api/axiosInstance";
 import {endpoints} from "../../api/endpoints";
 import {useAccountIdentity} from "../../hooks/useAccountIdentity";
@@ -17,6 +18,7 @@ const createClientId = () => {
     }
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 };
+const formatTokens = (value) => Number(value ?? 0).toLocaleString();
 const isIdentityQuestion = (content) => /\b(who\s+am\s+i|whoami|who\s+i\s+am)\b/i.test(content.trim());
 const isWeatherQuestion = (content) => /\b(weather|temperature|forecast|rain|raining|climate)\b/i.test(content.trim());
 const identityFallback = (content, user) => {
@@ -145,6 +147,15 @@ const AiChatPage = () => {
         queryFn: async () => asArray((await apiClient.get(endpoints.ai.messages(activeSession))).data),
         enabled: Boolean(activeSession)
     });
+    const usageQuery = useQuery({
+        queryKey: ["ai-usage"],
+        queryFn: async () => unwrapApiData((await apiClient.get(endpoints.ai.usage)).data)
+    });
+    const usage = usageQuery.data ?? {};
+    const usedTokens = Number(usage.usedTokens ?? 0);
+    const totalTokens = Number(usage.totalTokens ?? 0);
+    const availableTokens = Number(usage.availableTokens ?? usage.remainingTokens ?? Math.max(0, totalTokens - usedTokens));
+    const usagePercent = totalTokens > 0 ? Math.min(100, Math.round((usedTokens / totalTokens) * 100)) : 0;
     useEffect(() => {
         if (sessionsQuery.data) {
             setSessions(sessionsQuery.data);
@@ -179,6 +190,7 @@ const AiChatPage = () => {
         await apiClient.post(endpoints.ai.saveMessages(sessionId), savedMessages.map(({role, content}) => ({role, content})));
         await queryClient.invalidateQueries({queryKey: ["ai-sessions"]});
         await queryClient.invalidateQueries({queryKey: ["ai-messages", sessionId]});
+        await queryClient.invalidateQueries({queryKey: ["ai-usage"]});
     };
     const renameSession = async (sessionId, title) => {
         const cleanTitle = title.trim() || "New chat";
@@ -243,6 +255,7 @@ const AiChatPage = () => {
             } : message));
             await queryClient.invalidateQueries({queryKey: ["ai-sessions"]});
             await queryClient.invalidateQueries({queryKey: ["ai-messages", sessionId]});
+            await queryClient.invalidateQueries({queryKey: ["ai-usage"]});
         } catch (error) {
             const fallback = identityFallback(userMessage.content, currentUser)
                 || await weatherFallback(userMessage.content, locationRef.current.value);
@@ -340,6 +353,25 @@ const AiChatPage = () => {
             </div>
         </aside>
         <section className="flex min-w-0 flex-col">
+            <div className="border-b border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900 sm:p-4">
+                <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                        <TokenStat label="Used" value={formatTokens(usedTokens)}/>
+                        <TokenStat label="Available" value={formatTokens(availableTokens)}/>
+                        <TokenStat label="Total" value={formatTokens(totalTokens)}/>
+                    </div>
+                    <Link
+                        to="/app/premium"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+                    >
+                        <Sparkles className="h-4 w-4"/>
+                        Upgrade
+                    </Link>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+                    <div className="h-full rounded-full bg-teal-500 transition-all" style={{width: `${usagePercent}%`}}/>
+                </div>
+            </div>
             <div className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-5 lg:p-6">
                 {messagesQuery.isFetching && activeSession ? <div className="text-sm text-slate-500 dark:text-slate-400">Loading saved chat messages...</div> : null}
                 {messages.map((message) => <div
@@ -388,6 +420,12 @@ const AiChatPage = () => {
         </section>
     </main>;
 };
+
+const TokenStat = ({label, value}) => <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+    <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</p>
+    <p className="mt-1 text-base font-semibold text-slate-950 dark:text-white">{value}</p>
+</div>;
+
 export {
     AiChatPage
 };

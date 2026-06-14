@@ -166,7 +166,7 @@ class PaymentServiceTest {
         given(repository.existsByUserIdAndDescription(userId, "Platform starter plan")).willReturn(true);
         given(repository.findAllByUserIdOrderByCreatedAtDesc(userId)).willReturn(List.of(payment(userId, UUID.randomUUID(), "READY")));
 
-        assertEquals(service.seedDemoData(new DemoUserRequestDto(userId, "u@example.com", "User", "user", null)).size(), 1);
+        assertEquals(service.seedDemoData(new DemoUserRequestDto(userId, "u@example.com", "User")).size(), 1);
 
         verify(repository, never()).save(org.mockito.ArgumentMatchers.argThat(payment -> "Platform starter plan".equals(payment.getDescription())));
         verify(repository, org.mockito.Mockito.times(4)).save(any(Payment.class));

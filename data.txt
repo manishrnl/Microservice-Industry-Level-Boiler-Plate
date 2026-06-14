@@ -1,0 +1,1 @@
+add one field , email id at /super-admin url and make /app/dashboard a premium look . add data in AI tools at /app/dashboard . at present , it has 0 hardcoded values for total,used etc tokens.make /premium url a more dashing UI . also use colorful layout and theme instaead of black and white theme. use colorful theme across all pages to look dashing

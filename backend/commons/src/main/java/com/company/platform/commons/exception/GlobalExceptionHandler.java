@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +45,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiExceptions.ForbiddenException.class)
     ResponseEntity<ProblemDetails> forbidden(RuntimeException ex) {
         return problem(HttpStatus.FORBIDDEN, ex.getMessage(), Map.of());
+    }
+
+    @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+    ResponseEntity<ProblemDetails> accessDenied(RuntimeException ex) {
+        return problem(HttpStatus.FORBIDDEN, "Access denied", Map.of());
     }
 
     @ExceptionHandler(ApiExceptions.ConflictException.class)

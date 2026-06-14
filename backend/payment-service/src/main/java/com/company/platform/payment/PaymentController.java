@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -33,6 +35,13 @@ class PaymentController {
         return paymentService.list(userId);
     }
 
+    @GetMapping("/admin/users/{userId}")
+    List<PaymentDto> listForUser(@RequestHeader(value = "X-User-Roles", required = false) String roles,
+                                 @PathVariable UUID userId) {
+        requireSuperAdmin(roles);
+        return paymentService.listForUser(userId);
+    }
+
     @PostMapping("/{paymentId}/confirm")
     PaymentDto confirm(@RequestHeader("X-User-Id") UUID userId,
                        @PathVariable UUID paymentId,
@@ -49,5 +58,11 @@ class PaymentController {
     @PostMapping("/internal/demo-data")
     List<PaymentDto> seedDemoData(@RequestBody DemoUserRequestDto request) {
         return paymentService.seedDemoData(request);
+    }
+
+    private void requireSuperAdmin(String roles) {
+        if (roles == null || List.of(roles.split(",")).stream().noneMatch("SUPER_ADMIN"::equals)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "SUPER_ADMIN role is required");
+        }
     }
 }

@@ -21,6 +21,7 @@ public class AuthAccountDto {
     private String provider;
     private boolean emailVerified;
     private boolean accountLocked;
+    private int failedAttempts;
     private String accountStatus;
     private LocalDateTime lockedUntil;
     private LocalDateTime deletedAt;

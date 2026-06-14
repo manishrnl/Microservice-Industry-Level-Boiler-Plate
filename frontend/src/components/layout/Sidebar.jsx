@@ -17,7 +17,7 @@ import {BrandMark} from "./BrandMark";
 
 const mainLinks = [
     {label: "Dashboard", to: "/app/dashboard", Icon: Gauge},
-    {label: "AI Chat", to: "/app/ai", Icon: Bot},
+    {label: "AI Chats", to: "/app/ai", Icon: Bot},
     {label: "Notifications", to: "/app/notifications", Icon: Bell},
     {label: "Files", to: "/app/files", Icon: FileText},
     {label: "Payments", to: "/app/payments", Icon: CreditCard},
@@ -25,7 +25,7 @@ const mainLinks = [
     {label: "Profile", to: "/app/profile", Icon: UserRound}
 ];
 const Sidebar = () => {
-    const {isAdmin} = usePermission();
+    const {isAdmin, isSuperAdmin} = usePermission();
     const adminLinks = isAdmin() ? [
         {label: "Users", to: "/app/admin/users", Icon: Users},
         {label: "Audit", to: "/app/admin/audit", Icon: History},
@@ -33,10 +33,13 @@ const Sidebar = () => {
         {label: "Loki Logs", to: "/app/admin/logs", Icon: RadioTower},
         {label: "testsApp", to: "/app/admin/applicationTests", Icon: FlaskConical}
     ] : [];
+    const superAdminLinks = isSuperAdmin() ? [
+        {label: "Super Admin", to: "/app/super-admin", Icon: ShieldCheck}
+    ] : [];
     return <aside className="hidden w-64 border-r border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950 md:block">
         <BrandMark className="mb-5 px-1"/>
         <nav className="space-y-1">
-            {[...mainLinks, ...adminLinks].map(({label, to, Icon, end}) => <NavLink
+            {[...mainLinks, ...superAdminLinks, ...adminLinks].map(({label, to, Icon, end}) => <NavLink
                 key={to}
                 to={to}
                 end={end}

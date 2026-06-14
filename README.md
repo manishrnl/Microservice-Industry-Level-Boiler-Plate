@@ -12,7 +12,7 @@ This repository is designed as a reusable foundation: clone it, configure the en
 - [Repository Structure](#repository-structure)
 - [Prerequisites](#prerequisites)
 - [Environment Setup](#environment-setup)
-- [Run With Docker Compose](#run-with-docker-compose)
+- [Run Application With Docker Compose](#run-application-with-docker-compose)
 - [Run Frontend Locally](#run-frontend-locally)
 - [Run Backend Locally](#run-backend-locally)
 - [Service Ports](#service-ports)
@@ -170,16 +170,18 @@ Optional, depending on the features you want to test:
 
 ## Environment Setup
 
-Create a local environment file from the example:
+Create the backend and frontend environment files from their examples:
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item backend/.env.example backend/.env
+Copy-Item frontend/.env.example frontend/.env
 ```
 
 On macOS/Linux:
 
 ```bash
-cp .env-dev.example .env-dev
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
 The example file contains safe local defaults for Docker networking. Update these values when needed:
@@ -201,12 +203,17 @@ The example file contains safe local defaults for Docker networking. Update thes
 
 For local development, `docker-compose.override.yml` makes Config Server use the local `backend/config-server-repo` folder through the native Spring profile.
 
-## Run With Docker Compose
+## Run Application With Docker Compose
 
-The easiest way to run everything is Docker Compose from the repository root.
+The easiest way to run everything is Docker Compose from the repository root.Ensure your 
+docker Desktop is up and running, if not then download Docker from web.This application uses docker and won't run without it.
 
-```powershell
-docker compose --profile local-infra up --build
+```bash
+    docker compose --env-file backend/.env --env-file frontend/.env --profile local-infra up --build
+```
+To close all docker images use commands 
+```bash
+    docker compose --env-file backend/.env --env-file frontend/.env --profile local-infra down
 ```
 
 This starts:
@@ -221,19 +228,19 @@ This starts:
 Run in the background:
 
 ```powershell
-docker compose --profile local-infra up -d --build
+docker compose --env-file backend/.env --env-file frontend/.env --profile local-infra up -d --build
 ```
 
 Stop the stack:
 
 ```powershell
-docker compose --profile local-infra down
+docker compose --env-file backend/.env --env-file frontend/.env --profile local-infra down
 ```
 
 Stop and remove local volumes:
 
 ```powershell
-docker compose --profile local-infra down -v
+docker compose --env-file backend/.env --env-file frontend/.env --profile local-infra down -v
 ```
 
 After the stack is healthy, open:
@@ -303,7 +310,7 @@ To run a single service locally from Maven:
 mvn spring-boot:run -pl backend/auth-service -am
 ```
 
-When running individual services outside Docker, ensure the service can reach the required dependencies and that `.env` points to the correct hostnames. Docker service names like `postgres`, `redis`, and `kafka` work inside Compose, but local host processes usually need `localhost`.
+When running individual services outside Docker, ensure the service can reach the required dependencies and that `backend/.env` points to the correct hostnames. Docker service names like `postgres`, `redis`, and `kafka` work inside Compose, but local host processes usually need `localhost`.
 
 ## Service Ports
 
@@ -577,7 +584,7 @@ VITE_FRONTEND_PUBLIC_URL=http://localhost:5173
 Use the production override when hosting the backend stack on one machine:
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose --env-file backend/.env --env-file frontend/.env -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
 In this mode:
@@ -623,25 +630,25 @@ mvn clean package -DskipTests -pl backend/api-gateway -am
 Run the full local stack:
 
 ```powershell
-docker compose --profile local-infra up --build
+docker compose --env-file backend/.env --env-file frontend/.env --profile local-infra up --build
 ```
 
 Run the full local stack in the background:
 
 ```powershell
-docker compose --profile local-infra up -d --build
+docker compose --env-file backend/.env --env-file frontend/.env --profile local-infra up -d --build
 ```
 
 View logs for one service:
 
 ```powershell
-docker compose logs -f api-gateway
+docker compose --env-file backend/.env --env-file frontend/.env logs -f api-gateway
 ```
 
 Restart one service:
 
 ```powershell
-docker compose restart auth-service
+docker compose --env-file backend/.env --env-file frontend/.env restart auth-service
 ```
 
 Run frontend only:
@@ -690,7 +697,7 @@ If Vite starts on `5174`, update `FRONTEND_PUBLIC_URL` and `VITE_FRONTEND_PUBLIC
 Use the local infrastructure profile:
 
 ```powershell
-docker compose --profile local-infra up --build
+docker compose --env-file backend/.env --env-file frontend/.env --profile local-infra up --build
 ```
 
 Without this profile, the app expects infrastructure to already exist.
@@ -748,7 +755,7 @@ AI_RATE_LIMIT_PER_MINUTE
 
 ### Payment flow fails
 
-Set Stripe values in `.env`:
+Set Stripe values in `backend/.env`:
 
 ```text
 STRIPE_API_KEY=

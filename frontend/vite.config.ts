@@ -4,25 +4,26 @@ import {createLogger, defineConfig, loadEnv} from "vite";
 
 export default defineConfig(({mode}) => {
     const frontendEnv = loadEnv(mode, ".", "");
-    const rootEnv = loadEnv(mode, "../", "");
     const firstValue = (...values: Array<string | undefined>) => values.find((value) => value && value.trim().length > 0);
     const defaultApiGatewayUrl = "http://127.0.0.1:8080";
     const defaultFrontendPublicUrl = "http://localhost:5173";
     const normalizeUrl = (value: string | undefined) => value?.trim().replace(/\/+$/, "");
     const resolveApiGatewayUrl = () => {
-        const configuredUrl = normalizeUrl(firstValue(process.env.VITE_API_GATEWAY_URL, frontendEnv.VITE_API_GATEWAY_URL, rootEnv.VITE_API_GATEWAY_URL, process.env.BACKEND_PUBLIC_URL, rootEnv.BACKEND_PUBLIC_URL));
+        const configuredUrl = normalizeUrl(firstValue(process.env.VITE_API_GATEWAY_URL, frontendEnv.VITE_API_GATEWAY_URL));
         return configuredUrl ?? defaultApiGatewayUrl;
     };
     const apiGatewayUrl = resolveApiGatewayUrl();
-    const proxyTarget = normalizeUrl(firstValue(process.env.VITE_DEV_PROXY_TARGET, frontendEnv.VITE_DEV_PROXY_TARGET, rootEnv.VITE_DEV_PROXY_TARGET)) ?? apiGatewayUrl;
-    const frontendPublicUrl = normalizeUrl(firstValue(process.env.VITE_FRONTEND_PUBLIC_URL, frontendEnv.VITE_FRONTEND_PUBLIC_URL, rootEnv.VITE_FRONTEND_PUBLIC_URL, process.env.FRONTEND_PUBLIC_URL, rootEnv.FRONTEND_PUBLIC_URL)) ?? defaultFrontendPublicUrl;
-    const appEnv = firstValue(process.env.VITE_APP_ENV, frontendEnv.VITE_APP_ENV, rootEnv.VITE_APP_ENV) ?? mode;
-    const prometheusUrl = normalizeUrl(firstValue(process.env.VITE_PROMETHEUS_URL, frontendEnv.VITE_PROMETHEUS_URL, rootEnv.VITE_PROMETHEUS_URL, process.env.PROMETHEUS_URL, rootEnv.PROMETHEUS_URL));
-    const grafanaUrl = normalizeUrl(firstValue(process.env.VITE_GRAFANA_URL, frontendEnv.VITE_GRAFANA_URL, rootEnv.VITE_GRAFANA_URL, process.env.GRAFANA_URL, rootEnv.GRAFANA_URL));
-    const zipkinUrl = normalizeUrl(firstValue(process.env.VITE_ZIPKIN_URL, frontendEnv.VITE_ZIPKIN_URL, rootEnv.VITE_ZIPKIN_URL, process.env.ZIPKIN_URL, rootEnv.ZIPKIN_URL));
-    const lokiUrl = normalizeUrl(firstValue(process.env.VITE_LOKI_URL, frontendEnv.VITE_LOKI_URL, rootEnv.VITE_LOKI_URL, process.env.LOKI_URL, rootEnv.LOKI_URL));
-    const discoveryUrl = normalizeUrl(firstValue(process.env.VITE_DISCOVERY_URL, frontendEnv.VITE_DISCOVERY_URL, rootEnv.VITE_DISCOVERY_URL));
-    const configServerUrl = normalizeUrl(firstValue(process.env.VITE_CONFIG_SERVER_URL, frontendEnv.VITE_CONFIG_SERVER_URL, rootEnv.VITE_CONFIG_SERVER_URL));
+    const proxyTarget = normalizeUrl(firstValue(process.env.VITE_DEV_PROXY_TARGET, frontendEnv.VITE_DEV_PROXY_TARGET)) ?? apiGatewayUrl;
+    const frontendPublicUrl = normalizeUrl(firstValue(process.env.VITE_FRONTEND_PUBLIC_URL, frontendEnv.VITE_FRONTEND_PUBLIC_URL)) ?? defaultFrontendPublicUrl;
+    const appEnv = firstValue(process.env.VITE_APP_ENV, frontendEnv.VITE_APP_ENV) ?? mode;
+    const companyName = firstValue(process.env.COMPANY_NAME, process.env.COMAPNY_NAME, frontendEnv.COMPANY_NAME, frontendEnv.COMAPNY_NAME) ?? "Microservice Template";
+    const companyShortDescription = firstValue(process.env.COMPANY_SHORT_DESCRIPTION, frontendEnv.COMPANY_SHORT_DESCRIPTION) ?? "Production-grade Java platform";
+    const prometheusUrl = normalizeUrl(firstValue(process.env.VITE_PROMETHEUS_URL, frontendEnv.VITE_PROMETHEUS_URL));
+    const grafanaUrl = normalizeUrl(firstValue(process.env.VITE_GRAFANA_URL, frontendEnv.VITE_GRAFANA_URL));
+    const zipkinUrl = normalizeUrl(firstValue(process.env.VITE_ZIPKIN_URL, frontendEnv.VITE_ZIPKIN_URL));
+    const lokiUrl = normalizeUrl(firstValue(process.env.VITE_LOKI_URL, frontendEnv.VITE_LOKI_URL));
+    const discoveryUrl = normalizeUrl(firstValue(process.env.VITE_DISCOVERY_URL, frontendEnv.VITE_DISCOVERY_URL));
+    const configServerUrl = normalizeUrl(firstValue(process.env.VITE_CONFIG_SERVER_URL, frontendEnv.VITE_CONFIG_SERVER_URL));
     const virtualAdapterPattern = /(virtual|vethernet|wsl|docker|hyper-v|vmware|virtualbox|loopback|bluetooth)/i;
     const hiddenNetworkHosts = new Set(Object.entries(networkInterfaces())
         .filter(([name]) => virtualAdapterPattern.test(name))
@@ -49,6 +50,8 @@ export default defineConfig(({mode}) => {
             "import.meta.env.VITE_API_GATEWAY_URL": JSON.stringify(apiGatewayUrl),
             "import.meta.env.VITE_FRONTEND_PUBLIC_URL": JSON.stringify(frontendPublicUrl),
             "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv),
+            "import.meta.env.VITE_COMPANY_NAME": JSON.stringify(companyName),
+            "import.meta.env.VITE_COMPANY_SHORT_DESCRIPTION": JSON.stringify(companyShortDescription),
             "import.meta.env.VITE_PROMETHEUS_URL": JSON.stringify(prometheusUrl),
             "import.meta.env.VITE_GRAFANA_URL": JSON.stringify(grafanaUrl),
             "import.meta.env.VITE_ZIPKIN_URL": JSON.stringify(zipkinUrl),

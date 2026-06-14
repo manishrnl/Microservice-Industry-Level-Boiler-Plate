@@ -112,13 +112,19 @@ const UserManagementPage = () => {
             </div> : visibleUsers.length === 0 ? <div className="p-6 text-sm text-slate-500">No users matched your search.</div> :
                 visibleUsers.map((user) => <div
                 key={user.userId}
-                className="grid gap-4 border-b border-slate-200 px-4 py-4 text-sm last:border-0 dark:border-white/10 lg:grid-cols-[1fr_1.3fr_2fr_auto]"
+                className="grid gap-4 border-b border-slate-200 px-4 py-4 text-sm last:border-0 dark:border-white/10 lg:grid-cols-[1fr_1.3fr_1fr_2fr_auto]"
             >
                 <div>
                     <p className="font-medium text-slate-950 dark:text-white">{user.name}</p>
                     <p className="text-xs text-slate-500">{user.userId}</p>
                 </div>
                 <span className="min-w-0 break-words text-slate-600 dark:text-slate-300 lg:truncate">{user.email}</span>
+                <div className="space-y-1">
+                    <span className={`inline-flex rounded-md px-2 py-1 text-xs font-bold ${user.accountLocked ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"}`}>
+                        {user.accountLocked ? "LOCKED" : user.accountStatus || "ACTIVE"}
+                    </span>
+                    <p className="text-xs text-slate-500">Failed attempts: {user.failedAttempts ?? 0}</p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                     {roleOptions.map((role) => {
                         const checked = rolesFor(user).includes(role);

@@ -1,7 +1,7 @@
 services:
   config-server:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-config-server:0.1.0
     pull_policy: never
     build:
@@ -16,7 +16,7 @@ services:
       CONFIG_GIT_SEARCH_PATHS: ${CONFIG_GIT_SEARCH_PATHS}
       CONFIG_GIT_USERNAME: ${CONFIG_GIT_USERNAME}
       CONFIG_GIT_TOKEN: ${CONFIG_GIT_TOKEN}
-      CONFIG_NATIVE_SEARCH_LOCATIONS: ${CONFIG_NATIVE_SEARCH_LOCATIONS}
+      CONFIG_NATIVE_SEARCH_LOCATIONS: ${CONFIG_NATIVE_SEARCH_LOCATIONS:-file:/app/config-server-repo}
       CONFIG_ENCRYPT_KEY: ${CONFIG_ENCRYPT_KEY}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
@@ -39,7 +39,7 @@ services:
 
   discovery-server:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-discovery-server:0.1.0
     pull_policy: never
     build:
@@ -47,20 +47,22 @@ services:
       args:
         MODULE: discovery-server
     environment:
-      EUREKA_USER: ${EUREKA_USER}
-      EUREKA_PASSWORD: ${EUREKA_PASSWORD}
-      EUREKA_URL: ${EUREKA_URL}
-      EUREKA_HOSTNAME: ${EUREKA_HOSTNAME}
-      EUREKA_PEERS: ${EUREKA_PEERS}
-      EUREKA_REGISTER_SELF: ${EUREKA_REGISTER_SELF}
-      EUREKA_FETCH_REGISTRY: ${EUREKA_FETCH_REGISTRY}
+      EUREKA_USER: ${EUREKA_USER:-eureka}
+      EUREKA_PASSWORD: ${EUREKA_PASSWORD:-eureka_password}
+      EUREKA_URL: ${EUREKA_URL:-http://eureka:eureka_password@discovery-server:8761/eureka}
+      EUREKA_HOSTNAME: ${EUREKA_HOSTNAME:-localhost}
+      EUREKA_PEERS: ${EUREKA_PEERS:-http://eureka:eureka_password@localhost:8761/eureka}
+      EUREKA_REGISTER_SELF: ${EUREKA_REGISTER_SELF:-false}
+      EUREKA_FETCH_REGISTRY: ${EUREKA_FETCH_REGISTRY:-false}
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
       EUREKA_SERVER_PEER_NODE_READ_TIMEOUT_MS: 30000
       EUREKA_SERVER_PEER_NODE_CONNECT_TIMEOUT_MS: 10000
       EUREKA_SERVER_RESPONSE_CACHE_UPDATE_INTERVAL_MS: 30000
     ports:
       - "${DISCOVERY_SERVER_HOST_PORT:-8761}:8761"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://${EUREKA_USER}:${EUREKA_PASSWORD}@localhost:8761/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://$${EUREKA_USER}:$${EUREKA_PASSWORD}@localhost:8761/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -69,7 +71,7 @@ services:
 
   api-gateway:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-api-gateway:0.1.0
     pull_policy: never
     build:
@@ -77,7 +79,7 @@ services:
       args:
         MODULE: api-gateway
     environment:
-      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL:-http://config-server:8888}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
@@ -117,7 +119,7 @@ services:
 
   auth-service:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-auth-service:0.1.0
     pull_policy: never
     build:
@@ -125,17 +127,17 @@ services:
       args:
         MODULE: auth-service
     environment:
-      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL:-http://config-server:8888}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:-true}
       EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY:-true}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:-true}
-      JWT_KEY_ID: ${JWT_KEY_ID}
-      JWT_ISSUER: ${JWT_ISSUER}
-      JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES}
-      JWT_REFRESH_TOKEN_DAYS: ${JWT_REFRESH_TOKEN_DAYS}
+      JWT_KEY_ID: ${JWT_KEY_ID:-platform-local}
+      JWT_ISSUER: ${JWT_ISSUER:-microservice-platform}
+      JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES:-15}
+      JWT_REFRESH_TOKEN_DAYS: ${JWT_REFRESH_TOKEN_DAYS:-7}
       BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL}
       USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:8082}
       NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:8083}
@@ -176,7 +178,7 @@ services:
 
   user-service:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-user-service:0.1.0
     pull_policy: never
     build:
@@ -184,7 +186,7 @@ services:
       args:
         MODULE: user-service
     environment:
-      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL:-http://config-server:8888}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
@@ -208,7 +210,7 @@ services:
 
   notification-service:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-notification-service:0.1.0
     pull_policy: never
     build:
@@ -216,7 +218,7 @@ services:
       args:
         MODULE: notification-service
     environment:
-      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL:-http://config-server:8888}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
@@ -242,7 +244,7 @@ services:
 
   payment-service:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-payment-service:0.1.0
     pull_policy: never
     build:
@@ -250,7 +252,7 @@ services:
       args:
         MODULE: payment-service
     environment:
-      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL:-http://config-server:8888}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
@@ -279,7 +281,7 @@ services:
 
   file-service:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-file-service:0.1.0
     pull_policy: never
     build:
@@ -287,7 +289,7 @@ services:
       args:
         MODULE: file-service
     environment:
-      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL:-http://config-server:8888}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
@@ -318,7 +320,7 @@ services:
 
   ai-service:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-ai-service:0.1.0
     pull_policy: never
     build:
@@ -326,7 +328,7 @@ services:
       args:
         MODULE: ai-service
     environment:
-      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL:-http://config-server:8888}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
@@ -359,7 +361,7 @@ services:
 
   audit-service:
     env_file:
-      - .env
+      - backend/.env
     image: microservice-industry-audit-service:0.1.0
     pull_policy: never
     build:
@@ -367,7 +369,7 @@ services:
       args:
         MODULE: audit-service
     environment:
-      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL:-http://config-server:8888}
       DATABASE_AUTO_DDL: ${DATABASE_AUTO_DDL:-create}
       EUREKA_URL: ${EUREKA_URL}
       EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED:-true}
@@ -393,7 +395,7 @@ services:
   frontend:
     profiles: ["frontend"]
     env_file:
-      - .env
+      - frontend/.env
     image: node:24.15.0-alpine
     pull_policy: never
     working_dir: /app
@@ -568,7 +570,7 @@ services:
   zipkin-proxy:
     image: httpd:2.4-alpine
     env_file:
-      - .env
+      - backend/.env
     volumes:
       - ./backend/infrastructure/observability/zipkin-proxy.conf:/usr/local/apache2/conf/extra/observability.conf:ro
     command: >
@@ -594,7 +596,7 @@ services:
   prometheus-proxy:
     image: httpd:2.4-alpine
     env_file:
-      - .env
+      - backend/.env
     volumes:
       - ./backend/infrastructure/observability/prometheus-proxy.conf:/usr/local/apache2/conf/extra/observability.conf:ro
     command: >

@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -129,22 +130,37 @@ public class AuthController {
         return authService.jwks();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/db-ping")
     public Map<String, Object> dbPing() {
         return authService.dbPing();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/db-stats")
     public Map<String, Object> dbStats() {
         return authService.dbStats();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/admin/ping")
     public ActionResponseDto adminPing() {
         return ActionResponseDto.builder()
                 .status("ok")
                 .build();
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PostMapping("/admin/users/{userId}/unlock")
+    public ActionResponseDto unlockUser(@PathVariable UUID userId) {
+        return authService.unlockUser(userId);
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PutMapping("/admin/users/{userId}/password")
+    public ActionResponseDto adminChangePassword(@PathVariable UUID userId,
+                                                 @Valid @RequestBody AdminPasswordUpdateRequestDto request) {
+        return authService.adminChangePassword(userId, request);
     }
 
     private ClientRequestMetadataDto clientMetadata(HttpServletRequest request) {

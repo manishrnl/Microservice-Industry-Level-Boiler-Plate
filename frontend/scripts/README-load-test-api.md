@@ -356,20 +356,20 @@ This tests Postgres itself, without HTTP, gateway, JWT, Redis, or Spring Boot ov
 Initialize pgbench tables inside `auth_db` once:
 
 ```powershell
-docker compose exec postgres pgbench -U platform -i -s 10 auth_db
+docker compose --env-file backend/.env --env-file frontend/.env exec postgres pgbench -U platform -i -s 10 auth_db
 ```
 
 Run a read-only database benchmark:
 
 ```powershell
-docker compose exec postgres pgbench -U platform -S -c 50 -j 4 -T 60 auth_db
+docker compose --env-file backend/.env --env-file frontend/.env exec postgres pgbench -U platform -S -c 50 -j 4 -T 60 auth_db
 ```
 
 Increase clients gradually:
 
 ```powershell
-docker compose exec postgres pgbench -U platform -S -c 100 -j 8 -T 60 auth_db
-docker compose exec postgres pgbench -U platform -S -c 200 -j 8 -T 60 auth_db
+docker compose --env-file backend/.env --env-file frontend/.env exec postgres pgbench -U platform -S -c 100 -j 8 -T 60 auth_db
+docker compose --env-file backend/.env --env-file frontend/.env exec postgres pgbench -U platform -S -c 200 -j 8 -T 60 auth_db
 ```
 
 Read the important pgbench numbers:
@@ -381,7 +381,7 @@ Read the important pgbench numbers:
 To test your real auth tables with a simple repeated query:
 
 ```powershell
-docker compose exec postgres psql -U platform -d auth_db -c "EXPLAIN ANALYZE SELECT count(*) FROM users;"
+docker compose --env-file backend/.env --env-file frontend/.env exec postgres psql -U platform -d auth_db -c "EXPLAIN ANALYZE SELECT count(*) FROM users;"
 ```
 
 ## All Options

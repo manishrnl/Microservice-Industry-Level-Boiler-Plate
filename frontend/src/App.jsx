@@ -21,6 +21,7 @@ import {FilesPage} from "./pages/FilesPage";
 import {PaymentsPage} from "./pages/PaymentsPage";
 import {AiChatPage} from "./pages/ai/AiChatPage";
 import {UserManagementPage} from "./pages/admin/UserManagementPage";
+import {SuperAdminDashboardPage} from "./pages/admin/SuperAdminDashboardPage";
 import {AuditLogPage} from "./pages/admin/AuditLogPage";
 import {ObservabilityPage} from "./pages/admin/ObservabilityPage";
 import {LokiLogsPage} from "./pages/admin/LokiLogsPage";
@@ -49,6 +50,7 @@ const pageTitles = [
     {path: "/app/admin/applicationTests", title: "testsApp"},
     {path: "/app/super-admin/observability", title: "Super Admin Logs"},
     {path: "/app/super-admin/logs", title: "System Logs"},
+    {path: "/app/super-admin", title: "Super Admin"},
     {path: "/403", title: "Access Denied"}
 ];
 
@@ -106,6 +108,7 @@ const App = () => {
                         <Route path="admin/applicationTests" element={<ApplicationTestsPage/>}/>
                     </Route>
                     <Route element={<ProtectedRoute requiredRole="SUPER_ADMIN"/>}>
+                        <Route path="super-admin" element={<SuperAdminDashboardPage/>}/>
                         <Route path="super-admin/observability" element={<ObservabilityPage/>}/>
                         <Route path="super-admin/logs" element={<LokiLogsPage/>}/>
                     </Route>
@@ -132,6 +135,7 @@ const App = () => {
             <Route path="/admin/applicationTests" element={<Navigate to="/app/admin/applicationTests" replace/>}/>
             <Route path="/super-admin/observability" element={<Navigate to="/app/super-admin/observability" replace/>}/>
             <Route path="/super-admin/logs" element={<Navigate to="/app/super-admin/logs" replace/>}/>
+            <Route path="/super-admin" element={<Navigate to="/app/super-admin" replace/>}/>
             <Route path="/403" element={<AccessDeniedPage/>}/>
             <Route path="*" element={<NotFoundPage/>}/>
         </Routes>

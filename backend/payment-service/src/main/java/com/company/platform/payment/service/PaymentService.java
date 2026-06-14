@@ -95,6 +95,10 @@ public class PaymentService {
                 .toList();
     }
 
+    public List<PaymentDto> listForUser(UUID userId) {
+        return list(userId);
+    }
+
     @CacheEvict(cacheNames = "payments", key = "#request.userId()")
     public List<PaymentDto> seedDemoData(DemoUserRequestDto request) {
         UUID userId = request.userId();

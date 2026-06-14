@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,4 +28,11 @@ public class UserDto {
     private String username;
     private Set<RoleType> roles;
     private String avatarUrl;
+    private String provider;
+    private boolean emailVerified;
+    private boolean accountLocked;
+    private int failedAttempts;
+    private String accountStatus;
+    private LocalDateTime lockedUntil;
+    private LocalDateTime deletedAt;
 }

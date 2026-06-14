@@ -4,6 +4,8 @@ frontend/dist/
 *.log
 .vscode/
 .env
+.env.*
+!**/.env.example
 .env-dev
 .env-prod
 .env.railway
@@ -12,5 +14,4 @@ frontend/.env.*.local
 dist
 node_modules
 
-/frontend/.env.prod
 /frontend/package-lock.json

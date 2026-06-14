@@ -54,6 +54,7 @@ public class AuthService {
     private final JdbcTemplate jdbcTemplate;
     private final AuthNotificationService notificationService;
     private final AuthDemoDataService demoDataService;
+    private final LoginAttemptService loginAttemptService;
 
     @Value("${app.bootstrap-super-admin-email:manishrajrnl@gmail.com}")
     private String bootstrapSuperAdminEmail;
@@ -72,12 +73,10 @@ public class AuthService {
         String identifier = loginIdentifier(request);
         User user = findByLoginIdentifier(identifier)
                 .orElseThrow(() -> new ApiExceptions.UnauthorizedException("Invalid email, username, or password"));
-        if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new ApiExceptions.UnauthorizedException("Invalid email, username, or password");
-        }
-        if (!user.isEmailVerified()) {
-            mailService.sendSignupVerificationIfNeeded(user.getEmail(), displayName(user, user.getEmail(), user.getUsername()));
-            throw new ApiExceptions.ForbiddenException("Email is not verified. Enter the OTP sent to your email.");
+        if (loginAttemptService.unlockIfExpired(user.getId())) {
+            user.setFailedAttempts(0);
+            user.setAccountLocked(false);
+            user.setLockedUntil(null);
         }
         normalizeAccountStatus(user);
         if (ACCOUNT_STATUS_DELETED.equals(user.getAccountStatus())) {
@@ -86,7 +85,21 @@ public class AuthService {
         if (user.isAccountLocked()) {
             throw new ApiExceptions.ForbiddenException("Account is locked");
         }
-
+        if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            LoginAttemptService.LoginFailureResult failure = loginAttemptService.recordFailure(user.getId());
+            int maxAttempts = loginAttemptService.maxFailedAttempts();
+            if (failure.locked()) {
+                throw new ApiExceptions.ForbiddenException("Account locked after " + maxAttempts + " failed login attempts. Contact a super admin to unlock this account.");
+            }
+            int remainingAttempts = Math.max(0, maxAttempts - failure.failedAttempts());
+            throw new ApiExceptions.UnauthorizedException("Invalid email, username, or password. Failed attempt " + failure.failedAttempts() + " of " + maxAttempts + ". " + remainingAttempts + " attempt" + (remainingAttempts == 1 ? "" : "s") + " remaining.");
+        }
+        if (!user.isEmailVerified()) {
+            mailService.sendSignupVerificationIfNeeded(user.getEmail(), displayName(user, user.getEmail(), user.getUsername()));
+            throw new ApiExceptions.ForbiddenException("Email is not verified. Enter the OTP sent to your email.");
+        }
+        loginAttemptService.recordSuccess(user.getId());
+        user.setFailedAttempts(0);
         ensureBaselineRole(user);
         return issueToken(user, user.getEmail(), request.getDeviceId(), metadata);
     }
@@ -240,10 +253,18 @@ public class AuthService {
     }
 
     public ActionResponseDto forgotPassword(EmailRequestDto request) {
-        if (!userRepository.existsByEmailIgnoreCase(request.getEmail())) {
-            throw new ApiExceptions.ResourceNotFoundException("Account was not found");
+        User user = userRepository.findByEmailIgnoreCase(request.getEmail())
+                .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("Account was not found"));
+        if (loginAttemptService.unlockIfExpired(user.getId())) {
+            user.setFailedAttempts(0);
+            user.setAccountLocked(false);
+            user.setLockedUntil(null);
         }
-        mailService.sendPasswordReset(request.getEmail());
+        normalizeAccountStatus(user);
+        if (user.isAccountLocked()) {
+            throw new ApiExceptions.ForbiddenException("Account is locked. Contact a super admin to unlock this account before resetting the password.");
+        }
+        mailService.sendPasswordReset(user.getEmail());
         return ActionResponseDto.builder()
                 .status("sent")
                 .channel("email")
@@ -253,16 +274,70 @@ public class AuthService {
 
     public ActionResponseDto resetPassword(ResetPasswordRequestDto request) {
         validatePasswordMatch(request.getPassword(), request.getConfirmPassword());
+        User user = userRepository.findByEmailIgnoreCase(request.getEmail())
+                .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("Account was not found"));
+        if (loginAttemptService.unlockIfExpired(user.getId())) {
+            user.setFailedAttempts(0);
+            user.setAccountLocked(false);
+            user.setLockedUntil(null);
+        }
+        normalizeAccountStatus(user);
+        if (user.isAccountLocked()) {
+            throw new ApiExceptions.ForbiddenException("Account is locked. Contact a super admin to unlock this account before resetting the password.");
+        }
         if (!mailService.consumePasswordResetOtp(request.getEmail(), request.getOtp())) {
             throw new ApiExceptions.ValidationException("Invalid or expired reset OTP");
         }
-        User user = userRepository.findByEmailIgnoreCase(request.getEmail())
-                .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("Account was not found"));
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        loginAttemptService.recordSuccess(user.getId());
+        user.setFailedAttempts(0);
+        if (ACCOUNT_STATUS_ACTIVE.equals(user.getAccountStatus())) {
+            user.setAccountLocked(false);
+            user.setLockedUntil(null);
+        }
         userRepository.save(user);
         mailService.sendPasswordChanged(request.getEmail());
         return ActionResponseDto.builder()
                 .status("changed")
+                .build();
+    }
+
+    public ActionResponseDto unlockUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
+        normalizeAccountStatus(user);
+        user.setFailedAttempts(0);
+        user.setAccountLocked(false);
+        user.setLockedUntil(null);
+        if (ACCOUNT_STATUS_SUSPENDED.equals(user.getAccountStatus())) {
+            user.setAccountStatus(ACCOUNT_STATUS_ACTIVE);
+        }
+        userRepository.save(user);
+        return ActionResponseDto.builder()
+                .status("account_unlocked")
+                .build();
+    }
+
+    public ActionResponseDto adminChangePassword(UUID userId, AdminPasswordUpdateRequestDto request) {
+        validatePasswordMatch(request.getPassword(), request.getConfirmPassword());
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiExceptions.ResourceNotFoundException("User not found"));
+        if (ACCOUNT_STATUS_DELETED.equals(user.getAccountStatus())) {
+            throw new ApiExceptions.ForbiddenException("Deleted accounts cannot receive a new password");
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setFailedAttempts(0);
+        user.setAccountLocked(false);
+        user.setLockedUntil(null);
+        if (ACCOUNT_STATUS_SUSPENDED.equals(user.getAccountStatus())) {
+            user.setAccountStatus(ACCOUNT_STATUS_ACTIVE);
+        }
+        userRepository.save(user);
+        sessionService.revokeAll(user);
+        mailService.sendPasswordChanged(user.getEmail());
+        return ActionResponseDto.builder()
+                .status("password_changed")
+                .revoked(true)
                 .build();
     }
 

@@ -16,6 +16,8 @@ const endpoints = {
         resendVerification: `${api}/api/v1/auth/resend-verification`,
         forgotPassword: `${api}/api/v1/auth/forgot-password`,
         resetPassword: `${api}/api/v1/auth/reset-password`,
+        adminUnlockUser: (id) => `${api}/api/v1/auth/admin/users/${id}/unlock`,
+        adminPassword: (id) => `${api}/api/v1/auth/admin/users/${id}/password`,
         sessions: `${api}/api/v1/auth/sessions`,
         revokeSession: (sessionId) => `${api}/api/v1/auth/sessions/${sessionId}`,
         revokeAllSessions: `${api}/api/v1/auth/sessions/all`,
@@ -63,6 +65,7 @@ const endpoints = {
     },
     payments: {
         list: `${api}/api/v1/payments`,
+        adminByUser: (userId) => `${api}/api/v1/payments/admin/users/${userId}`,
         create: `${api}/api/v1/payments`,
         confirm: (paymentId) => `${api}/api/v1/payments/${paymentId}/confirm`
     },

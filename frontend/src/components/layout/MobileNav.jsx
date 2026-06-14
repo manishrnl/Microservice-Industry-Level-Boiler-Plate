@@ -1,11 +1,12 @@
 import {NavLink} from "react-router-dom";
 import {usePermission} from "../../hooks/usePermission";
 import {mainLinks} from "./Sidebar";
-import {FlaskConical, History, RadioTower, Users} from "lucide-react";
+import {FlaskConical, History, RadioTower, ShieldCheck, Users} from "lucide-react";
 
 const MobileNav = () => {
-    const {isAdmin} = usePermission();
+    const {isAdmin, isSuperAdmin} = usePermission();
     const adminLinks = isAdmin() ? [
+        ...(isSuperAdmin() ? [{label: "Super", to: "/app/super-admin", Icon: ShieldCheck}] : []),
         {label: "Users", to: "/app/admin/users", Icon: Users},
         {label: "Audit", to: "/app/admin/audit", Icon: History},
         {label: "Ops", to: "/app/admin/observability", Icon: RadioTower},

@@ -8,6 +8,8 @@ import {useAccountIdentity} from "../../hooks/useAccountIdentity";
 import {usePreferencesStore} from "../../store/preferencesStore";
 import {asArray, extractAssistantContent, unwrapApiData} from "../../utils/responseUtils";
 import {displayUserName} from "../../utils/userDisplay";
+import {languageByCode} from "../../config/languages";
+import {refreshPageTranslation} from "../../components/common/LanguageSelector";
 
 const createClientId = () => {
     if (globalThis.crypto?.randomUUID) {
@@ -88,6 +90,7 @@ const AiChatPage = () => {
     const queryClient = useQueryClient();
     const {identity: currentUser} = useAccountIdentity();
     const timezone = usePreferencesStore((state) => state.timezone);
+    const language = usePreferencesStore((state) => state.language);
     const [sessions, setSessions] = useState([]);
     const [activeSession, setActiveSession] = useState("");
     const [messages, setMessages] = useState([]);
@@ -123,11 +126,16 @@ const AiChatPage = () => {
             {enableHighAccuracy: false, maximumAge: 300000, timeout: 5000}
         );
     });
-    const userContext = () => ({
-        locale: navigator.language,
-        timezone,
-        localTime: new Date().toString()
-    });
+    const userContext = () => {
+        const selectedLanguage = languageByCode(language);
+        return {
+            locale: selectedLanguage
+                ? `${selectedLanguage.locale}; preferred response language: ${selectedLanguage.name}`
+                : navigator.language,
+            timezone,
+            localTime: new Date().toString()
+        };
+    };
     const sessionsQuery = useQuery({
         queryKey: ["ai-sessions"],
         queryFn: async () => asArray((await apiClient.get(endpoints.ai.sessions)).data)
@@ -150,6 +158,9 @@ const AiChatPage = () => {
             setMessages([]);
         }
     }, [activeSession, messagesQuery.data]);
+    useEffect(() => {
+        refreshPageTranslation(language);
+    }, [language, messages, sessions]);
     const createSession = async () => {
         const response = await apiClient.post(endpoints.ai.createSession, {title: "New chat"});
         const created = unwrapApiData(response.data);

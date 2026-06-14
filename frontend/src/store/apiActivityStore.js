@@ -21,6 +21,7 @@ const useApiActivityStore = create((set) => ({
     startedAt: null,
     message: defaultActivity.message,
     detail: defaultActivity.detail,
+    overlayDismissed: false,
     startActivity: (activity = defaultActivity) => {
         let active = true;
         const normalized = normalizeActivity(activity);
@@ -28,7 +29,8 @@ const useApiActivityStore = create((set) => ({
             pendingCount: state.pendingCount + 1,
             startedAt: state.startedAt ?? Date.now(),
             message: normalized.message,
-            detail: normalized.detail
+            detail: normalized.detail,
+            overlayDismissed: state.pendingCount === 0 ? false : state.overlayDismissed
         }));
         return () => {
             if (!active) {
@@ -41,11 +43,13 @@ const useApiActivityStore = create((set) => ({
                     pendingCount: nextCount,
                     startedAt: nextCount === 0 ? null : state.startedAt,
                     message: nextCount === 0 ? defaultActivity.message : state.message,
-                    detail: nextCount === 0 ? defaultActivity.detail : state.detail
+                    detail: nextCount === 0 ? defaultActivity.detail : state.detail,
+                    overlayDismissed: nextCount === 0 ? false : state.overlayDismissed
                 };
             });
         };
-    }
+    },
+    dismissOverlay: () => set({overlayDismissed: true})
 }));
 export {
     useApiActivityStore

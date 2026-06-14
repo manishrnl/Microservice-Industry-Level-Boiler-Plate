@@ -67,6 +67,8 @@ class AuthServiceTest {
     private AuthNotificationService notifications;
     @Mock
     private AuthDemoDataService demoData;
+    @Mock
+    private LoginAttemptService loginAttempts;
 
     private AuthService service;
 
@@ -74,7 +76,7 @@ class AuthServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         service = new AuthService(users, roles, userRoles, sessions, mapper, encoder, mail, tokens,
-                new RefreshTokenCookieFactory(false, "Lax", 7), keys, jdbc, notifications, demoData);
+                new RefreshTokenCookieFactory(false, "Lax", 7), keys, jdbc, notifications, demoData, loginAttempts);
         ReflectionTestUtils.setField(service, "bootstrapSuperAdminEmail", "super@example.com");
     }
 
@@ -131,6 +133,8 @@ class AuthServiceTest {
 
         User user = user("u@example.com", "user", false, false, "ACTIVE");
         given(users.findByEmailIgnoreCase("u@example.com")).willReturn(Optional.of(user));
+        given(loginAttempts.recordFailure(user.getId()))
+                .willReturn(new LoginAttemptService.LoginFailureResult(1, false, null));
         given(encoder.matches("bad", user.getPasswordHash())).willReturn(false);
         expectThrows(
                 ApiExceptions.UnauthorizedException.class,
@@ -312,6 +316,33 @@ class AuthServiceTest {
         given(encoder.matches("wrong", user.getPasswordHash())).willReturn(false);
 
         expectThrows(ApiExceptions.UnauthorizedException.class, () -> service.changePassword(request, jwt));
+    }
+
+    @Test
+    void superAdminPasswordChangeUnlocksRestrictedAccountAndRejectsDeletedAccount() {
+        User user = user("locked@example.com", "locked", true, true, "SUSPENDED");
+        user.setFailedAttempts(10);
+        user.setLockedUntil(LocalDateTime.now().plusMinutes(30));
+        AdminPasswordUpdateRequestDto request = new AdminPasswordUpdateRequestDto();
+        request.setPassword("NewPassword@123");
+        request.setConfirmPassword("NewPassword@123");
+        given(users.findById(user.getId())).willReturn(Optional.of(user));
+        given(encoder.encode("NewPassword@123")).willReturn("new-hash");
+
+        ActionResponseDto response = service.adminChangePassword(user.getId(), request);
+
+        assertEquals(response.getStatus(), "password_changed");
+        assertEquals(user.getPasswordHash(), "new-hash");
+        assertEquals(user.getFailedAttempts(), 0);
+        assertFalse(user.isAccountLocked());
+        assertNull(user.getLockedUntil());
+        assertEquals(user.getAccountStatus(), "ACTIVE");
+        verify(sessions).revokeAll(user);
+        verify(mail).sendPasswordChanged("locked@example.com");
+
+        User deleted = user("deleted@example.com", "deleted", true, true, "DELETED");
+        given(users.findById(deleted.getId())).willReturn(Optional.of(deleted));
+        expectThrows(ApiExceptions.ForbiddenException.class, () -> service.adminChangePassword(deleted.getId(), request));
     }
 
     @Test

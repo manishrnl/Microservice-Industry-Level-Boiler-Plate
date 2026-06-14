@@ -10,6 +10,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -46,6 +47,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetails> method = handler.methodNotAllowed(new HttpRequestMethodNotSupportedException("PATCH"));
         ResponseEntity<ProblemDetails> dataIntegrity = handler.dataIntegrity(new DataIntegrityViolationException("duplicate"));
         ResponseEntity<ProblemDetails> dataAccess = handler.dataAccess(new DataAccessResourceFailureException("down"));
+        ResponseEntity<ProblemDetails> denied = handler.accessDenied(new AuthorizationDeniedException("denied"));
         ResponseEntity<ProblemDetails> generic = handler.generic(new RuntimeException("boom"));
 
         assertEquals(malformed.getStatusCode(), HttpStatus.BAD_REQUEST);
@@ -53,6 +55,8 @@ class GlobalExceptionHandlerTest {
         assertEquals(method.getStatusCode(), HttpStatus.METHOD_NOT_ALLOWED);
         assertEquals(dataIntegrity.getStatusCode(), HttpStatus.CONFLICT);
         assertEquals(dataAccess.getStatusCode(), HttpStatus.SERVICE_UNAVAILABLE);
+        assertEquals(denied.getStatusCode(), HttpStatus.FORBIDDEN);
+        assertEquals(denied.getBody().detail(), "Access denied");
         assertEquals(generic.getStatusCode(), HttpStatus.INTERNAL_SERVER_ERROR);
         assertEquals(generic.getBody().traceId(), "trace-123");
     }

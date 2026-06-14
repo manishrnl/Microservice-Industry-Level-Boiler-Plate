@@ -22,9 +22,7 @@ import java.util.Optional;
 public class RateLimitFilter implements GlobalFilter, Ordered {
     private static final List<String> DEFAULT_EXCLUDED_PATHS = List.of(
             "/actuator",
-            "/api/v1/auth/.well-known/jwks.json",
-            "/api/v1/auth/db-ping",
-            "/api/v1/auth/db-stats"
+            "/api/v1/auth/.well-known/jwks.json"
     );
 
     private final ReactiveStringRedisTemplate redisTemplate;

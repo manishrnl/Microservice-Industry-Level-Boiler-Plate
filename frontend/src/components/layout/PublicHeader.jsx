@@ -1,9 +1,10 @@
 import {Menu, X} from "lucide-react";
-import {useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {Link, NavLink} from "react-router-dom";
 import {ThemeToggle} from "../common/ThemeToggle";
 import {useAuthStore} from "../../store/authStore";
 import {BrandMark} from "./BrandMark";
+import {LanguageSelector} from "../common/LanguageSelector";
 
 const links = [
     {label: "Architecture", href: "/#architecture"},
@@ -15,6 +16,7 @@ const links = [
 
 const PublicHeader = () => {
     const [open, setOpen] = useState(false);
+    const headerRef = useRef(null);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const ctaPath = isAuthenticated ? "/app/dashboard" : "/login";
     const ctaLabel = isAuthenticated ? "Dashboard" : "Sign in";
@@ -24,7 +26,22 @@ const PublicHeader = () => {
         }
     };
 
-    return <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/90">
+    useEffect(() => {
+        if (!open) {
+            return undefined;
+        }
+
+        const closeOnOutsidePress = (event) => {
+            if (headerRef.current && !headerRef.current.contains(event.target)) {
+                setOpen(false);
+            }
+        };
+
+        document.addEventListener("pointerdown", closeOnOutsidePress);
+        return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
+    }, [open]);
+
+    return <header ref={headerRef} className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <BrandMark to="/" onClick={scrollHomeTop}/>
 
@@ -39,6 +56,7 @@ const PublicHeader = () => {
             </nav>
 
             <div className="hidden items-center gap-2 sm:flex">
+                <LanguageSelector compact/>
                 <ThemeToggle/>
                 {!isAuthenticated && <NavLink
                     to="/signup"
@@ -84,6 +102,7 @@ const PublicHeader = () => {
                         {ctaLabel}
                     </Link>
                 </div>
+                <LanguageSelector/>
             </div>
         </div>}
     </header>;

@@ -71,6 +71,8 @@ const configServerUrl = resolvePublicUrl(import.meta.env.VITE_CONFIG_SERVER_URL,
 
 const env = {
     appEnv: import.meta.env.VITE_APP_ENV || import.meta.env.MODE,
+    companyName: import.meta.env.VITE_COMPANY_NAME || "Microservice Template",
+    companyShortDescription: import.meta.env.VITE_COMPANY_SHORT_DESCRIPTION || "Production-grade Java platform",
     isProduction: import.meta.env.PROD,
     apiGatewayUrl: resolvedApiGatewayUrl,
     prometheusUrl,

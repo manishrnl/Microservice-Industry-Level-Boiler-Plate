@@ -102,6 +102,10 @@ app:
   bootstrap-super-admin-email: ${BOOTSTRAP_SUPER_ADMIN_EMAIL:manishrajrnl@zohomail.in}
   bootstrap-super-admin-username: ${BOOTSTRAP_SUPER_ADMIN_USERNAME:manish}
   bootstrap-super-admin-password: ${BOOTSTRAP_SUPER_ADMIN_PASSWORD:Password@123}
+  security:
+    login:
+      max-failed-attempts: ${AUTH_LOGIN_MAX_FAILED_ATTEMPTS:10}
+      lock-duration-minutes: ${AUTH_LOGIN_LOCK_DURATION_MINUTES:30}
   mail:
     provider: ${MAIL_PROVIDER:smtp}
     from: ${BREVO_FROM_EMAIL:${MAIL_FROM:no-reply@platform.local}}

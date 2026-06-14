@@ -1,6 +1,7 @@
 import {LockKeyhole, Network, ShieldCheck, Sparkles} from "lucide-react";
 import {ThemeToggle} from "../../components/common/ThemeToggle";
 import {BrandMark} from "../../components/layout/BrandMark";
+import {LanguageSelector} from "../../components/common/LanguageSelector";
 
 const AuthShell = ({title, subtitle, children}) => <main
     className="relative min-h-screen overflow-hidden bg-[#eef3f8] text-slate-950 dark:bg-[#070a10]"
@@ -16,7 +17,10 @@ const AuthShell = ({title, subtitle, children}) => <main
             className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5"
         >
             <BrandMark/>
-            <ThemeToggle/>
+            <div className="flex items-center gap-2">
+                <LanguageSelector compact/>
+                <ThemeToggle/>
+            </div>
         </header>
         <section
             className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 pb-8 sm:px-5 lg:grid-cols-[minmax(0,1fr)_440px]"
